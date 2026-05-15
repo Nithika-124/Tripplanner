@@ -21,13 +21,13 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
+import { NewTripModal } from "./NewTripModal";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard", icon: Home, exact: true },
   { to: "/explore", label: "Explore", icon: Compass },
   { to: "/my-trips", label: "My Trips", icon: Map },
   { to: "/calendar", label: "Calendar", icon: Calendar },
-  { to: "/saved", label: "Saved", icon: Bookmark },
 ];
 
 const notifications = [
@@ -65,6 +65,7 @@ export function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isNewTripModalOpen, setIsNewTripModalOpen] = useState(false);
   const profileRef = useRef(null);
   const notifRef = useRef(null);
   const searchRef = useRef(null);
@@ -206,7 +207,7 @@ export function AppLayout() {
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => navigate("/app/new-trip")}
+                onClick={() => setIsNewTripModalOpen(true)}
                 className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-shadow"
               >
                 <Plus className="w-4 h-4" />
@@ -339,7 +340,7 @@ export function AppLayout() {
                 })}
                 <button
                   onClick={() => {
-                    navigate("/app/new-trip");
+                    setIsNewTripModalOpen(true);
                     setMobileOpen(false);
                   }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mt-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-semibold"
@@ -355,8 +356,14 @@ export function AppLayout() {
 
       {/* ── Main Content ── */}
       <main className="min-h-[calc(100vh-64px)]">
-        <Outlet />
+        <Outlet context={{ openNewTripModal: () => setIsNewTripModalOpen(true) }} />
       </main>
+
+      {/* New Trip Modal */}
+      <NewTripModal 
+        isOpen={isNewTripModalOpen} 
+        onClose={() => setIsNewTripModalOpen(false)} 
+      />
     </div>
   );
 }

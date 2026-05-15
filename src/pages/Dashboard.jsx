@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
-import {
-  Plus, MapPin, Calendar, Users, TrendingUp, Clock,
+import { Plus, MapPin, Calendar, Users, TrendingUp, Clock,
   DollarSign, Plane, ArrowRight, Star, CheckCircle,
   Globe, BarChart3, Target
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate, useOutletContext } from "react-router-dom";
 
 const upcomingTrips = [
   {
@@ -107,6 +106,7 @@ const quickActions = [
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { openNewTripModal } = useOutletContext() || {};
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? "Good morning" : currentHour < 18 ? "Good afternoon" : "Good evening";
 
@@ -149,7 +149,7 @@ export function Dashboard() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/new-trip")}
+                  onClick={() => openNewTripModal ? openNewTripModal() : navigate("/new-trip")}
                   className="px-8 py-4 bg-white text-blue-600 rounded-full font-semibold flex items-center gap-2 shadow-lg"
                 >
                   <Plus className="w-5 h-5" />
@@ -369,7 +369,13 @@ export function Dashboard() {
                     transition={{ delay: 0.3 + index * 0.05 }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => action.action && navigate(action.action)}
+                    onClick={() => {
+                      if (action.action === "/new-trip" && openNewTripModal) {
+                        openNewTripModal();
+                      } else if (action.action) {
+                        navigate(action.action);
+                      }
+                    }}
                     className="w-full bg-white rounded-xl shadow-lg p-4 flex items-center gap-4 hover:shadow-xl transition-shadow text-left"
                   >
                     <div className={`w-12 h-12 bg-gradient-to-br ${action.color} rounded-xl flex items-center justify-center flex-shrink-0`}>

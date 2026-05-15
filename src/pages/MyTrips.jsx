@@ -95,14 +95,12 @@ export function MyTrips() {
     return (
         <div className="min-h-[calc(100vh-73px)] py-8 px-4">
             <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">My Trips</h1>
-                    <p className="text-gray-600">Manage and track all your travel adventures</p>
-                </div>
-
                 {/* Nearest Trip Detail */}
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-500 rounded-3xl overflow-hidden shadow-xl mb-8">
+                <div className="bg-gradient-to-br from-cyan-500 to-blue-800 rounded-3xl overflow-hidden shadow-xl mb-8">
+                    <div className="mb-8 pt-10">
+                        <h1 className="text-center text-4xl font-bold text-white mb-2">Manage Your Trips</h1>
+                        <p className="text-center text-white/90">Manage AI-generated plans, custom trips, checklists, budgets, reminders, and real-time travel progress from one professional workspace.</p>
+                    </div>
                     <div className="grid lg:grid-cols-5 gap-6 p-8">
                         {/* Trip Image and Info */}
                         <div className="lg:col-span-2">
