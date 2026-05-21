@@ -1,94 +1,144 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, Calendar, Users, DollarSign, MoreVertical, Share2, Plane, Hotel, Camera, Utensils, CheckCircle2, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import API from "../../api/api";
 
+const MOCK_TRIPS = [
+    {
+        id: '1',
+        destination: 'Summer in Paris',
+        location: 'Paris, France',
+        image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+        startDate: 'Jun 15',
+        endDate: 'Jul 18',
+        duration: '7 Days',
+        travelers: 2,
+        budget: '$2,400',
+        progress: 75,
+        status: 'planned',
+        activities: ['Sightseeing', 'Food Tour', 'Museums'],
+        daysUntil: 8,
+        tasks: [
+            { id: '1', title: 'Book flight tickets', completed: true, category: 'booking' },
+            { id: '2', title: 'Reserve hotel accommodation', completed: true, category: 'booking' },
+            { id: '3', title: 'Purchase travel insurance', completed: true, category: 'booking' },
+            { id: '4', title: 'Plan daily itinerary', completed: false, category: 'planning' },
+            { id: '5', title: 'Book Louvre Museum tickets', completed: false, category: 'booking' },
+            { id: '6', title: 'Reserve dinner at Le Jules Verne', completed: false, category: 'booking' },
+            { id: '7', title: 'Pack luggage', completed: false, category: 'packing' },
+            { id: '8', title: 'Download offline maps', completed: false, category: 'planning' },
+        ]
+    },
+    {
+        id: '2',
+        destination: 'London Adventure',
+        location: 'London, England',
+        image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800',
+        startDate: 'Aug 5',
+        endDate: 'Aug 12',
+        duration: '8 Days',
+        travelers: 4,
+        budget: '$3,200',
+        progress: 45,
+        status: 'planned',
+        activities: ['Theater', 'Sightseeing', 'Shopping'],
+        daysUntil: 29,
+        tasks: [
+            { id: '1', title: 'Book flight tickets', completed: true, category: 'booking' },
+            { id: '2', title: 'Reserve hotel accommodation', completed: false, category: 'booking' },
+            { id: '3', title: 'Book theater tickets', completed: false, category: 'booking' },
+        ]
+    },
+    {
+        id: '3',
+        destination: 'Tokyo Experience',
+        location: 'Tokyo, Japan',
+        image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800',
+        startDate: 'Sep 1',
+        endDate: 'Sep 10',
+        duration: '10 Days',
+        travelers: 2,
+        budget: '$4,500',
+        progress: 20,
+        status: 'planned',
+        activities: ['Culture', 'Food', 'Technology'],
+        daysUntil: 56,
+        tasks: [
+            { id: '1', title: 'Book flight tickets', completed: false, category: 'booking' },
+            { id: '2', title: 'Apply for visa', completed: false, category: 'planning' },
+        ]
+    },
+];
 
+const normalizeTrip = (trip) => {
+    const start = trip.startDate ? new Date(trip.startDate) : null;
+    const end = trip.endDate ? new Date(trip.endDate) : null;
+    const diffTime = start && end ? Math.abs(end - start) : 0;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const today = new Date();
+    const daysUntil = start ? Math.ceil((start - today) / (1000 * 60 * 60 * 24)) : 999;
 
+    return {
+        id: trip._id || trip.id,
+        destination: trip.title || (trip.destinations && trip.destinations[0]) || 'New Trip',
+        location: (trip.destinations && trip.destinations.join(', ')) || 'TBD',
+        image: trip.image || 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+        startDate: trip.startDate ? new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD',
+        endDate: trip.endDate ? new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD',
+        duration: trip.duration || `${diffDays || 0} Days`,
+        travelers: trip.travelers || 1,
+        budget: typeof trip.budget === 'number' ? `$${trip.budget.toLocaleString()}` : (trip.budget || '$0'),
+        progress: trip.progress || 0,
+        status: trip.status || 'planned',
+        activities: trip.activities || [],
+        daysUntil: isNaN(daysUntil) ? 0 : (daysUntil < 0 ? 0 : daysUntil),
+        tasks: trip.tasks || []
+    };
+};
 
 export function MyTrips() {
     const [filter, setFilter] = useState('all');
+    const [trips, setTrips] = useState(MOCK_TRIPS);
 
-    const trips = [
-        {
-            id: '1',
-            destination: 'Summer in Paris',
-            location: 'Paris, France',
-            image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-            startDate: 'Jun 15',
-            endDate: 'Jul 18',
-            duration: '7 Days',
-            travelers: 2,
-            budget: '$2,400',
-            progress: 75,
-            status: 'planned',
-            activities: ['Sightseeing', 'Food Tour', 'Museums'],
-            daysUntil: 8,
-            tasks: [
-                { id: '1', title: 'Book flight tickets', completed: true, category: 'booking' },
-                { id: '2', title: 'Reserve hotel accommodation', completed: true, category: 'booking' },
-                { id: '3', title: 'Purchase travel insurance', completed: true, category: 'booking' },
-                { id: '4', title: 'Plan daily itinerary', completed: false, category: 'planning' },
-                { id: '5', title: 'Book Louvre Museum tickets', completed: false, category: 'booking' },
-                { id: '6', title: 'Reserve dinner at Le Jules Verne', completed: false, category: 'booking' },
-                { id: '7', title: 'Pack luggage', completed: false, category: 'packing' },
-                { id: '8', title: 'Download offline maps', completed: false, category: 'planning' },
-            ]
-        },
-        {
-            id: '2',
-            destination: 'London Adventure',
-            location: 'London, England',
-            image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800',
-            startDate: 'Aug 5',
-            endDate: 'Aug 12',
-            duration: '8 Days',
-            travelers: 4,
-            budget: '$3,200',
-            progress: 45,
-            status: 'planned',
-            activities: ['Theater', 'Sightseeing', 'Shopping'],
-            daysUntil: 29,
-            tasks: [
-                { id: '1', title: 'Book flight tickets', completed: true, category: 'booking' },
-                { id: '2', title: 'Reserve hotel accommodation', completed: false, category: 'booking' },
-                { id: '3', title: 'Book theater tickets', completed: false, category: 'booking' },
-            ]
-        },
-        {
-            id: '3',
-            destination: 'Tokyo Experience',
-            location: 'Tokyo, Japan',
-            image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800',
-            startDate: 'Sep 1',
-            endDate: 'Sep 10',
-            duration: '10 Days',
-            travelers: 2,
-            budget: '$4,500',
-            progress: 20,
-            status: 'planned',
-            activities: ['Culture', 'Food', 'Technology'],
-            daysUntil: 56,
-            tasks: [
-                { id: '1', title: 'Book flight tickets', completed: false, category: 'booking' },
-                { id: '2', title: 'Apply for visa', completed: false, category: 'planning' },
-            ]
-        },
-    ];
+    useEffect(() => {
+        fetchTrips();
+    }, []);
 
-    const nearestTrip = trips.reduce((nearest, trip) =>
-        trip.daysUntil < nearest.daysUntil ? trip : nearest
-    );
+    const fetchTrips = async () => {
+        try {
+            const res = await API.get("/trips/my-trips");
+            if (res.data && res.data.length > 0) {
+                setTrips(res.data.map(normalizeTrip));
+            } else {
+                setTrips(MOCK_TRIPS);
+            }
+        } catch (error) {
+            console.log(error);
+            setTrips(MOCK_TRIPS);
+        }
+    };
+
+    const nearestTrip = trips.length > 0
+        ? trips.reduce((nearest, trip) => ((trip.daysUntil ?? 999) < (nearest.daysUntil ?? 999) ? trip : nearest))
+        : null;
 
     const [taskStates, setTaskStates] = useState(
-        Object.fromEntries(nearestTrip.tasks.map(task => [task.id, task.completed]))
+        nearestTrip ? Object.fromEntries(nearestTrip.tasks.map(task => [task.id, task.completed])) : {}
     );
+
+    useEffect(() => {
+        if (nearestTrip) {
+            setTaskStates(Object.fromEntries(nearestTrip.tasks.map(task => [task.id, task.completed])));
+        }
+    }, [nearestTrip?.id]);
 
     const toggleTask = (taskId) => {
         setTaskStates(prev => ({ ...prev, [taskId]: !prev[taskId] }));
     };
 
-    const completedTasks = nearestTrip.tasks.filter(task => taskStates[task.id]).length;
-    const totalTasks = nearestTrip.tasks.length;
+    const completedTasks = nearestTrip ? nearestTrip.tasks.filter(task => taskStates[task.id]).length : 0;
+    const totalTasks = nearestTrip ? nearestTrip.tasks.length : 0;
 
     const filteredTrips = filter === 'all' ? trips : trips.filter(trip => trip.status === filter);
 
