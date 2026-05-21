@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { NewTripModal } from "./NewTripModal";
+import { AuthModal } from "./AuthModal";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard", icon: Home, exact: true },
@@ -66,9 +67,48 @@ export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isNewTripModalOpen, setIsNewTripModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState("signin");
+
   const profileRef = useRef(null);
   const notifRef = useRef(null);
   const searchRef = useRef(null);
+
+  // Initialize session state from localStorage
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+    if (token && storedUser) {
+      setIsLoggedIn(true);
+      try {
+        setCurrentUser(JSON.parse(storedUser));
+      } catch (err) {
+        console.error("Failed to parse stored user", err);
+      }
+    }
+  }, []);
+
+  const handleLoginSuccess = (user) => {
+    setIsLoggedIn(true);
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    navigate("/");
+  };
+
+  const getUserInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
@@ -116,11 +156,10 @@ export function AppLayout() {
                   <Link
                     key={to}
                     to={to}
-                    className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                      active
+                    className={`relative flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 group ${active
                         ? "text-blue-600 bg-blue-50"
                         : "text-gray-500 hover:text-blue-600 hover:bg-blue-50/60"
-                    }`}
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     {label}
@@ -138,8 +177,9 @@ export function AppLayout() {
 
             {/* ── Right Controls ── */}
             <div className="flex items-center gap-2 ml-auto">
-
-              {/* Notifications */}
+              {isLoggedIn ? (
+                <>
+                  {/* Notifications */}
               <div ref={notifRef} className="relative">
                 <button
                   onClick={() => {
@@ -175,9 +215,8 @@ export function AppLayout() {
                         {notifications.map((n) => (
                           <div
                             key={n.id}
-                            className={`flex gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-                              n.unread ? "bg-blue-50/40" : ""
-                            }`}
+                            className={`flex gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${n.unread ? "bg-blue-50/40" : ""
+                              }`}
                           >
                             <span className="text-xl mt-0.5">{n.icon}</span>
                             <div className="flex-1 min-w-0">
@@ -224,16 +263,19 @@ export function AppLayout() {
                   className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-xl hover:bg-gray-100 transition-all"
                 >
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shadow-sm">
-                    <span className="text-white text-sm font-bold">A</span>
+                    <span className="text-white text-sm font-bold">
+                      {getUserInitials(currentUser?.fullName || "Traveler")}
+                    </span>
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-xs font-semibold text-gray-800 leading-none">Alex Rivera</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Pro Member</p>
+                    <p className="text-xs font-semibold text-gray-800 leading-none">
+                      {currentUser?.fullName || "Traveler"}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Member</p>
                   </div>
                   <ChevronDown
-                    className={`w-3.5 h-3.5 text-gray-400 hidden md:block transition-transform duration-200 ${
-                      profileOpen ? "rotate-180" : ""
-                    }`}
+                    className={`w-3.5 h-3.5 text-gray-400 hidden md:block transition-transform duration-200 ${profileOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -250,11 +292,17 @@ export function AppLayout() {
                       <div className="px-4 py-3 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-gray-100">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shadow">
-                            <span className="text-white font-bold">A</span>
+                            <span className="text-white font-bold">
+                              {getUserInitials(currentUser?.fullName || "Traveler")}
+                            </span>
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-800">Alex Rivera</p>
-                            <p className="text-xs text-gray-500">alex@email.com</p>
+                            <p className="text-sm font-semibold text-gray-800">
+                              {currentUser?.fullName || "Traveler"}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate max-w-[140px]">
+                              {currentUser?.email || "traveler@email.com"}
+                            </p>
                           </div>
                         </div>
                         <div className="mt-2 flex items-center gap-1">
@@ -286,7 +334,7 @@ export function AppLayout() {
 
                       <div className="border-t border-gray-100 py-1.5">
                         <button
-                          onClick={() => navigate("/")}
+                          onClick={handleLogout}
                           className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
                         >
                           <LogOut className="w-4 h-4" />
@@ -297,6 +345,29 @@ export function AppLayout() {
                   )}
                 </AnimatePresence>
               </div>
+              </>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setAuthModalTab("login");
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors cursor-pointer"
+                  >
+                    Log In
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAuthModalTab("signup");
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
 
               {/* Mobile Hamburger */}
               <button
@@ -327,27 +398,51 @@ export function AppLayout() {
                       key={to}
                       to={to}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                        active
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${active
                           ? "bg-blue-50 text-blue-600"
                           : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
-                      }`}
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                       {label}
                     </Link>
                   );
                 })}
-                <button
-                  onClick={() => {
-                    setIsNewTripModalOpen(true);
-                    setMobileOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mt-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-semibold"
-                >
-                  <Plus className="w-4 h-4" />
-                  Plan New Trip
-                </button>
+                {isLoggedIn ? (
+                  <button
+                    onClick={() => {
+                      setIsNewTripModalOpen(true);
+                      setMobileOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 mt-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-semibold"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Plan New Trip
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-2 mt-2 font-medium">
+                    <button
+                      onClick={() => {
+                        setAuthModalTab("signin");
+                        setIsAuthModalOpen(true);
+                        setMobileOpen(false);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAuthModalTab("signup");
+                        setIsAuthModalOpen(true);
+                        setMobileOpen(false);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-semibold cursor-pointer"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
+                )}
               </nav>
             </motion.div>
           )}
@@ -360,9 +455,17 @@ export function AppLayout() {
       </main>
 
       {/* New Trip Modal */}
-      <NewTripModal 
-        isOpen={isNewTripModalOpen} 
-        onClose={() => setIsNewTripModalOpen(false)} 
+      <NewTripModal
+        isOpen={isNewTripModalOpen}
+        onClose={() => setIsNewTripModalOpen(false)}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialTab={authModalTab}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );
