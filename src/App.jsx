@@ -3,6 +3,10 @@ import { useEffect } from 'react';
 import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { AppLayout } from './components/NavBar';
+import { Explore } from './pages/Explore';
+import { MyTrips } from './pages/MyTrips';
+import { Calendar } from './pages/Calendar';
+
 function ScrollToTop() {
   const { pathname } = useLocation();
 
@@ -21,6 +25,9 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route element={<AppLayout />}>
           <Route path='/dashboard' element={<Dashboard />} />
+          <Route path='/explore' element={<Explore />} />
+          <Route path='/my-trips' element={<MyTrips />} />
+          <Route path='/calendar' element={<Calendar />} />
         </Route>
       </Routes>
     </BrowserRouter>
