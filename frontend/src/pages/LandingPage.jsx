@@ -152,7 +152,7 @@ export function Hero() {
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <motion.a
-            href="/app"
+            href="/dashboard"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             className="group flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-[#060E1E] rounded-2xl font-bold text-base shadow-2xl shadow-blue-400/25 hover:shadow-blue-400/40 transition-all"
