@@ -354,6 +354,214 @@ function DestinationShowcase() {
   );
 }
 
+function AIPlannerPreview() {
+  const navigate = useNavigate();
+
+  return (
+    <section className="py-20 px-6 relative overflow-hidden">
+      <div className="max-w-[1500px] mx-auto">
+        <div className="relative rounded-[28px] border border-cyan-400/25 bg-[#061426]/70 overflow-hidden px-10 md:px-16 py-14 md:py-16 shadow-[0_0_80px_rgba(0,180,255,0.08)]">
+          <div className="absolute inset-0 opacity-[0.05]"/>
+
+          <div className="relative grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-16 items-center">
+            {/* LEFT */}
+            <motion.div
+              initial={{ opacity: 0, x: -35 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/40 text-cyan-300 text-sm font-bold mb-8">
+                <Sparkles className="w-4 h-4" />
+                AI POWERED
+              </div>
+
+              <h2
+                className="text-5xl md:text-6xl font-black text-white leading-[1.12] mb-7"
+                style={{ fontFamily: "'Fraunces', serif" }}
+              >
+                Let AI Plan Your
+                <span className="block">
+                  Perfect{" "}
+                  <span className="italic bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                    Trip
+                  </span>
+                </span>
+              </h2>
+
+              <p className="text-lg text-blue-100/80 leading-relaxed mb-8 max-w-xl">
+                Tell us your budget, destination, and preferences. Our AI creates
+                a complete itinerary with the best route, cost breakdown, hotels,
+                flights, and time management.
+              </p>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                {[
+                  { icon: Wallet, label: "Budget Breakdown" },
+                  { icon: MapPin, label: "Best Route Planning" },
+                  { icon: Calendar, label: "Daily Itinerary" },
+                  { icon: Plane, label: "Flights & Hotels" },
+                ].map(({ icon: Icon, label }) => (
+                  <div
+                    key={label}
+                    className="h-32 rounded-2xl border border-white/10 bg-white/[0.035] hover:bg-white/[0.06] transition-colors p-5 flex flex-col items-center justify-center text-center"
+                  >
+                    <Icon className="w-8 h-8 text-cyan-300 mb-3" />
+                    <p className="text-white text-sm font-semibold leading-snug">
+                      {label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <motion.button
+                onClick={() => navigate("/ai-trip-planner")}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                className="w-full md:w-[480px] justify-center px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-2xl font-bold text-lg shadow-2xl shadow-blue-400/25 hover:shadow-blue-400/40 transition-all flex items-center gap-3"
+              >
+                Generate My AI Trip
+                <ArrowRight className="w-5 h-5" />
+              </motion.button>
+
+              <div className="mt-8 flex flex-wrap gap-8 text-sm text-white/55">
+                <span>✓ No credit card required</span>
+                <span>✓ Free forever plan</span>
+                <span>✓ Cancel anytime</span>
+              </div>
+            </motion.div>
+
+            {/* RIGHT */}
+            <motion.div
+              initial={{ opacity: 0, x: 35 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="rounded-3xl border border-white/10 bg-[#071426]/95 shadow-2xl overflow-hidden"
+            >
+              <div className="p-7 border-b border-white/10">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <p className="text-cyan-300 text-sm font-bold mb-2">
+                      ✨ AI Trip Preview
+                    </p>
+                    <h3 className="text-white text-2xl font-black">
+                      5 Days in Japan
+                    </h3>
+                    <p className="text-blue-200/60 text-sm mt-2">
+                      2 Travelers · Mid-range
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-white/45 text-sm">Total Budget</p>
+                    <p className="text-cyan-300 text-3xl font-black">
+                      $1,500
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-white font-semibold mb-4">
+                  Budget Breakdown
+                </p>
+
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {[
+                    ["✈️", "Flights", "$520"],
+                    ["🏨", "Hotels", "$420"],
+                    ["🍴", "Food", "$230"],
+                    ["🚌", "Transport", "$140"],
+                    ["🎟️", "Activities", "$130"],
+                    ["🛡️", "Buffer", "$60"],
+                  ].map(([icon, label, value]) => (
+                    <div
+                      key={label}
+                      className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+                    >
+                      <div className="text-xl mb-2">{icon}</div>
+                      <p className="text-white/55 text-xs">{label}</p>
+                      <p className="text-white font-bold text-lg">{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 h-1 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full w-[38%] bg-cyan-400" />
+                </div>
+              </div>
+
+              <div className="p-7">
+                <p className="text-white font-semibold mb-4">
+                  Daily Plan Preview
+                </p>
+
+                <div className="space-y-4">
+                  {[
+                    {
+                      img: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=200",
+                      day: "Day 1",
+                      title: "Tokyo Arrival + City Walk",
+                      route: "Airport → Hotel → Shibuya → Tokyo Tower",
+                      cost: "$180",
+                    },
+                    {
+                      img: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=200",
+                      day: "Day 2",
+                      title: "Culture + Food Experience",
+                      route: "Sensoji Temple → Ueno → Akihabara",
+                      cost: "$145",
+                    },
+                    {
+                      img: "https://images.unsplash.com/photo-1570459027562-4a916cc6113f?w=200",
+                      day: "Day 3",
+                      title: "Nature Day Trip",
+                      route: "Tokyo → Mt. Fuji Viewpoint → Lake Kawaguchi",
+                      cost: "$210",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.day}
+                      className="rounded-2xl border border-white/10 bg-white/[0.035] p-3 flex items-center gap-4"
+                    >
+                      <img
+                        src={item.img}
+                        alt={item.title}
+                        className="w-24 h-16 rounded-xl object-cover"
+                      />
+
+                      <div className="flex-1">
+                        <p className="text-cyan-300 text-sm font-bold">
+                          {item.day}
+                        </p>
+                        <h4 className="text-white font-bold">{item.title}</h4>
+                        <p className="text-white/45 text-sm">{item.route}</p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-white/45 text-xs">Est. Cost</p>
+                        <p className="text-cyan-300 text-xl font-black">
+                          {item.cost}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => navigate("/ai-trip-planner")}
+                  className="mt-6 text-cyan-300 font-semibold flex items-center gap-2 hover:gap-3 transition-all"
+                >
+                  View Full Itinerary <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Features() {
   const features = [
     { icon: MapPin, title: "Destination Discovery", description: "Explore thousands of destinations with detailed guides, photos, and insider tips from travelers worldwide." },
@@ -763,6 +971,7 @@ export function LandingPage() {
         <Hero />
         <Stats />
         <DestinationShowcase />
+        <AIPlannerPreview />
         <Features />
         <HowItWorks />
         <Testimonials />

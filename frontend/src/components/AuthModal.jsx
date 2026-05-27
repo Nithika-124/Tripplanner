@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import API from "../../api/api";
 
-export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "signin" }) {
+export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "login" }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -131,10 +131,10 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "signi
                 Welcome to TripPlanner
               </span>
               <h2 className="text-2xl font-black text-slate-800 dark:text-white mt-1">
-                {activeTab === "signin" ? "Adventure Awaits!" : "Start Your Journey"}
+                {activeTab === "login" ? "Adventure Awaits!" : "Start Your Journey"}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {activeTab === "signin"
+                {activeTab === "login"
                   ? "Sign in to access your curated plans and get travel ideas."
                   : "Create an account to begin planning and saving dream destinations."}
               </p>
@@ -145,11 +145,11 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "signi
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab("signin");
+                  setActiveTab("login");
                   setError("");
                   setSuccess("");
                 }}
-                className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-300 relative z-10 ${activeTab === "signin"
+                className={`flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-300 relative z-10 ${activeTab === "login"
                     ? "text-blue-600 dark:text-blue-400"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
                   }`}
@@ -176,7 +176,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "signi
                 layout
                 className="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-6px)] bg-white dark:bg-slate-900 rounded-xl shadow-md"
                 animate={{
-                  x: activeTab === "signin" ? "0%" : "100%",
+                  x: activeTab === "login" ? "0%" : "100%",
                 }}
                 transition={{ type: "spring", stiffness: 350, damping: 25 }}
               />
@@ -262,7 +262,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "signi
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-400">
                     Password
                   </label>
-                  {activeTab === "signin" && (
+                  {activeTab === "login" && (
                     <button
                       type="button"
                       className="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
@@ -307,7 +307,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "signi
                   </>
                 ) : (
                   <span>
-                    {activeTab === "signin" ? "Sign In to Account" : "Create Travel Account"}
+                    {activeTab === "login" ? "Sign In to Account" : "Create Travel Account"}
                   </span>
                 )}
               </motion.button>
@@ -316,19 +316,19 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "signi
             {/* Switch Mode Footer */}
             <div className="text-center mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {activeTab === "signin"
+                {activeTab === "login"
                   ? "New to TripPlanner?"
                   : "Already have a travel account?"}{" "}
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveTab(activeTab === "signin" ? "signup" : "signin");
+                    setActiveTab(activeTab === "login" ? "signup" : "login");
                     setError("");
                     setSuccess("");
                   }}
                   className="font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
                 >
-                  {activeTab === "signin" ? "Create an Account" : "Sign In Here"}
+                  {activeTab === "login" ? "Create an Account" : "Sign In Here"}
                 </button>
               </p>
             </div>
