@@ -2,30 +2,22 @@ const mongoose = require("mongoose");
 
 const destinationSchema = new mongoose.Schema(
   {
+    xid: String,
     name: String,
     country: String,
     city: String,
     category: String,
     description: String,
     image: String,
+    photos: [String],
     rating: Number,
     reviews: Number,
-    price: String,
-    bestTimeToVisit: String,
     activities: [String],
     highlights: [String],
-    photos: [String],
-
-    estimatedBudget: {
-      low: Number,
-      medium: Number,
-      high: Number
-    },
-
     location: {
       lat: Number,
-      lng: Number
-    }
+      lng: Number,
+    },
   },
   { timestamps: true }
 );

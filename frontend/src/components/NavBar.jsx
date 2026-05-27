@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
-import { NewTripModal } from "./NewTripModal";
 import { AuthModal } from "./AuthModal";
 
 const navLinks = [
@@ -70,7 +69,7 @@ export function AppLayout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalTab, setAuthModalTab] = useState("signin");
+  const [authModalTab, setAuthModalTab] = useState("login");
 
   const profileRef = useRef(null);
   const notifRef = useRef(null);
@@ -423,7 +422,7 @@ export function AppLayout() {
                   <div className="flex flex-col gap-2 mt-2 font-medium">
                     <button
                       onClick={() => {
-                        setAuthModalTab("signin");
+                        setAuthModalTab("login");
                         setIsAuthModalOpen(true);
                         setMobileOpen(false);
                       }}
@@ -453,12 +452,6 @@ export function AppLayout() {
       <main className="min-h-[calc(100vh-64px)]">
         <Outlet context={{ openNewTripModal: () => setIsNewTripModalOpen(true) }} />
       </main>
-
-      {/* New Trip Modal */}
-      <NewTripModal
-        isOpen={isNewTripModalOpen}
-        onClose={() => setIsNewTripModalOpen(false)}
-      />
 
       {/* Auth Modal */}
       <AuthModal
