@@ -1,56 +1,13 @@
 const express = require("express");
 const OpenAI = require("openai");
-const axios = require("axios");
-const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-const openai = new OpenAI({
+const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-async function getCountryCenter(country) {
-  const res = await axios.get(
-    `https://restcountries.com/v3.1/name/${encodeURIComponent(country)}`
-  );
-
-  const data = res.data[0];
-
-  return {
-    country: data.name.common,
-    lat: data.latlng[0],
-    lng: data.latlng[1],
-  };
-}
-
-async function getDestinations(country, interests = []) {
-  const center = await getCountryCenter(country);
-
-  const res = await axios.get("https://api.opentripmap.com/0.1/en/places/radius", {
-    params: {
-      radius: 120000,
-      lon: center.lng,
-      lat: center.lat,
-      kinds: "interesting_places,cultural,historic,natural,architecture,museums",
-      rate: 2,
-      limit: 20,
-      format: "json",
-      apikey: process.env.OPENTRIPMAP_API_KEY,
-    },
-  });
-
-  return (res.data || [])
-    .filter((p) => p.name && p.point)
-    .slice(0, 12)
-    .map((p) => ({
-      name: p.name,
-      lat: p.point.lat,
-      lng: p.point.lon,
-      kinds: p.kinds,
-    }));
-}
-
-router.post("/generate", protect, async (req, res) => {
+router.post("/generate", async (req, res) => {
   try {
     const {
       startLocation,
@@ -58,94 +15,88 @@ router.post("/generate", protect, async (req, res) => {
       budget,
       days,
       travelers,
-      interests,
       travelStyle,
+      interests,
+      notes,
     } = req.body;
 
-    const destinations = await getDestinations(destinationCountry, interests);
-
     const prompt = `
-Create a realistic travel plan as JSON only.
+Create a detailed travel plan.
 
-User:
-Start location: ${startLocation}
-Destination country: ${destinationCountry}
-Budget: ${budget}
+Starting location: ${startLocation}
+Destination: ${destinationCountry}
+Budget: $${budget}
 Days: ${days}
 Travelers: ${travelers}
-Interests: ${(interests || []).join(", ")}
-Travel style: ${travelStyle}
+Travel Style: ${travelStyle}
+Interests: ${interests?.join(", ")}
+Notes: ${notes}
 
-Use only these candidate destinations:
-${JSON.stringify(destinations)}
+Return JSON only.
 
-Return JSON with this shape:
+Format:
 {
   "title": "",
   "summary": "",
-  "totalBudget": number,
+  "totalBudget": 0,
+  "travelers": 0,
+  "days": 0,
   "budgetBreakdown": {
-    "flights": number,
-    "hotels": number,
-    "food": number,
-    "transport": number,
-    "activities": number,
-    "buffer": number
+    "flight": 0,
+    "hotel": 0,
+    "food": 0,
+    "transport": 0,
+    "activities": 0
   },
   "dailyPlan": [
     {
       "day": 1,
+      "title": "",
       "city": "",
-      "estimatedCost": number,
-      "schedule": [
+      "route": "",
+      "estimatedCost": 0,
+      "activities": [
         {
-          "time": "09:00",
+          "time": "",
           "place": "",
           "activity": "",
-          "estimatedCost": number,
-          "lat": number,
-          "lng": number
+          "cost": 0
         }
-      ],
-      "hotelSuggestion": {
-        "area": "",
-        "estimatedNightlyCost": number,
-        "reason": ""
-      }
+      ]
     }
   ],
-  "tips": []
+  "recommendations": []
 }
-
-Rules:
-- Keep total estimated cost within budget.
-- Distribute activities logically by distance and time.
-- If days > 1, include hotel suggestion per day.
-- If start location is another country, include estimated flight budget.
-- Return valid JSON only.
 `;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-5.5",
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content:
-            "You are a travel planning assistant. Return only valid JSON. No markdown.",
+          content: "You are a professional AI travel planner.",
         },
         {
           role: "user",
           content: prompt,
         },
       ],
-      response_format: { type: "json_object" },
+      temperature: 0.7,
     });
 
-    const plan = JSON.parse(completion.choices[0].message.content);
+    const text = completion.choices[0].message.content;
 
-    res.json(plan);
+    const cleanText = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const aiPlan = JSON.parse(cleanText);
+
+    res.json(aiPlan);
   } catch (error) {
     console.log(error);
+
     res.status(500).json({
       message: "AI trip generation failed",
       error: error.message,

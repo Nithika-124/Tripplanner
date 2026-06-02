@@ -25,6 +25,7 @@ import { AuthModal } from "./AuthModal";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard", icon: Home, exact: true },
+  { to: "/ai-planner", label: "AI Planner", icon: Globe },
   { to: "/explore", label: "Explore", icon: Compass },
   { to: "/my-trips", label: "My Trips", icon: Map },
   { to: "/calendar", label: "Calendar", icon: Calendar },
