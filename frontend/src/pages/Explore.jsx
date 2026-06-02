@@ -6,13 +6,19 @@ import {
   X,
   DollarSign,
   Calendar,
+  Compass,
+  Globe,
+  Filter,
+  MapPinned,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import API from "../../api/api";
 
 export function Explore() {
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedCountry, setSelectedCountry] = useState("Sri Lanka");
+  const [selectedCountry, setSelectedCountry] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDestination, setSelectedDestination] = useState(null);
 
@@ -36,19 +42,40 @@ export function Explore() {
   }, []);
 
   useEffect(() => {
-    fetchDestinations();
+    if (selectedCountry) {
+      fetchDestinations();
+    }
   }, [selectedCountry, selectedCategory]);
+
+  useEffect(() => {
+    if (!selectedCountry) return;
+
+    const timer = setTimeout(() => {
+      fetchDestinations();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchCountries = async () => {
     try {
       const res = await API.get("/destinations/countries");
+
       setCountries(res.data);
+
+      if (res.data.length > 0) {
+        const sriLanka = res.data.find((c) => c.name === "Sri Lanka");
+        setSelectedCountry(sriLanka ? "Sri Lanka" : res.data[0].name);
+      }
     } catch (error) {
       console.log(error);
+      alert("Failed to load countries");
     }
   };
 
   const fetchDestinations = async () => {
+    if (!selectedCountry) return;
+
     try {
       setLoading(true);
 
@@ -69,57 +96,112 @@ export function Explore() {
     }
   };
 
-  const filteredDestinations = destinations;
-
   return (
-    <div className="min-h-[calc(100vh-73px)] py-8 px-4">
+    <div className="min-h-[calc(100vh-73px)] bg-slate-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-center text-4xl font-bold text-gray-900 mb-2 tracking-tight">
-            <span className="font-['Playfair_Display'] inline-block scale-x-125">
+        {/* HERO */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-10 mb-8 text-white shadow-lg">
+          <div className="relative z-10 max-w-3xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                <Compass className="w-7 h-7" />
+              </div>
+              <span className="text-lg font-semibold">
+                Explore Real Destinations
+              </span>
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Where do you want to go?
-            </span>
-          </h1>
-          <p className="text-center text-gray-600">
-            Discover real destinations by country and category
-          </p>
-        </div>
+            </h1>
 
-        <div className="mb-6">
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <p className="text-white/90 text-lg max-w-2xl">
+              Discover real-world travel places by country and category. Explore
+              destinations, photos, highlights, travel tips and map locations.
+            </p>
+          </div>
 
-            <input
-              type="text"
-              placeholder="Search destinations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-            />
+          <div className="hidden md:block absolute right-14 top-10 text-8xl opacity-90">
+            🌍✈️
+          </div>
+        </section>
+
+        {/* SEARCH FILTER CARD */}
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 mb-8">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Filter className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Find destinations
+              </h2>
+              <p className="text-sm text-gray-500">
+                Search by country, category, or place name
+              </p>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-[1.2fr_0.8fr_auto] gap-4 items-end">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Search Destination
+              </label>
+
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+
+                <input
+                  type="text"
+                  placeholder="Search destinations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-white text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Country
+              </label>
+
+              <select
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className="w-full px-4 py-4 bg-white text-gray-900 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="">Select country</option>
+
+                {countries.map((country) => (
+                  <option key={country.name} value={country.name}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
               onClick={fetchDestinations}
-              className="mt-3 w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 rounded-xl font-semibold"
+              disabled={loading || !selectedCountry}
+              className="w-full lg:w-auto px-10 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Search
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Loading
+                </>
+              ) : (
+                <>
+                  <Search className="w-5 h-5" />
+                  Search
+                </>
+              )}
             </button>
           </div>
         </div>
 
-        <div className="mb-6 max-w-2xl mx-auto">
-          <select
-            value={selectedCountry}
-            onChange={(e) => setSelectedCountry(e.target.value)}
-            className="w-full px-4 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
-            {countries.map((country) => (
-              <option key={country.name} value={country.name}>
-                {country.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
+        {/* CATEGORIES */}
         <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
           {categories.map((category) => (
             <button
@@ -131,28 +213,53 @@ export function Explore() {
                   : "bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md"
               }`}
             >
+              <Sparkles className="w-4 h-4" />
               <span className="font-semibold">{category.label}</span>
             </button>
           ))}
         </div>
 
-        {loading && (
-          <p className="text-center text-gray-600 mb-6">
-            Loading real destinations...
-          </p>
-        )}
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDestinations.map((destination) => (
-            <DestinationCard
-              key={destination._id || destination.xid}
-              destination={destination}
-              onClick={() => setSelectedDestination(destination)}
-            />
-          ))}
+        {/* RESULTS HEADER */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {selectedCountry || "Explore"} Destinations
+            </h2>
+            <p className="text-gray-500">
+              {loading
+                ? "Loading real destinations..."
+                : `${destinations.length} places found`}
+            </p>
+          </div>
         </div>
 
-        {!loading && filteredDestinations.length === 0 && (
+        {/* LOADING */}
+        {loading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="h-[420px] rounded-3xl bg-gray-200 animate-pulse"
+              />
+            ))}
+          </div>
+        )}
+
+        {/* DESTINATIONS */}
+        {!loading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {destinations.map((destination) => (
+              <DestinationCard
+                key={destination._id || destination.xid}
+                destination={destination}
+                onClick={() => setSelectedDestination(destination)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* EMPTY */}
+        {!loading && destinations.length === 0 && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-10 h-10 text-gray-400" />
@@ -161,7 +268,7 @@ export function Explore() {
               No destinations found
             </h3>
             <p className="text-gray-600">
-              Try another country, category, or search query
+              Try another country, category, or search query.
             </p>
           </div>
         )}
@@ -178,79 +285,100 @@ export function Explore() {
 }
 
 function DestinationCard({ destination, onClick }) {
+  const fallbackImage =
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200";
+
   return (
-    <div
+    <motion.div
+      whileHover={{ y: -6 }}
       onClick={onClick}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+      className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group border border-gray-100"
     >
       <div className="relative h-56 overflow-hidden">
         <img
-          src={destination.image}
+          src={destination.image || fallbackImage}
           alt={destination.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          onError={(e) => {
+            e.currentTarget.src = fallbackImage;
+          }}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
 
         <div className="absolute bottom-4 left-4 right-4">
-          <h3 className="text-2xl font-bold text-white mb-1">
+          <h3 className="text-2xl font-bold text-white mb-1 line-clamp-1">
             {destination.name}
           </h3>
 
           <div className="flex items-center gap-1 text-white/90">
             <MapPin className="w-4 h-4" />
-            <span className="text-sm">
+            <span className="text-sm line-clamp-1">
               {destination.city ? `${destination.city}, ` : ""}
               {destination.country}
             </span>
           </div>
         </div>
 
-        <div className="absolute top-4 right-4 flex items-center gap-1 bg-white px-3 py-1.5 rounded-full">
+        <div className="absolute top-4 right-4 flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow">
           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
           <span className="font-semibold text-sm">
             {destination.rating || 4.5}
           </span>
         </div>
+
+        <div className="absolute top-4 left-4 bg-blue-500/90 text-white px-3 py-1.5 rounded-full text-xs font-bold capitalize">
+          {destination.category || "Destination"}
+        </div>
       </div>
 
       <div className="p-5">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 text-gray-600 text-sm">
-            <span className="font-semibold capitalize">
-              {destination.category || "Destination"}
-            </span>
-          </div>
-
-          <span className="text-xs text-gray-500">
+          <span className="text-sm text-gray-500">
             {destination.reviews || 500} reviews
+          </span>
+
+          <span className="text-sm font-semibold text-cyan-600">
+            {destination.price || "Trip cost varies"}
           </span>
         </div>
 
-        <p className="text-sm text-gray-600 line-clamp-2 mb-4">
-          {destination.description}
+        <p className="text-sm text-gray-600 line-clamp-3 mb-4">
+          {destination.description || "Explore this beautiful travel place."}
         </p>
 
-        <button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-2.5 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all font-semibold">
+        <button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 rounded-xl hover:shadow-lg transition-all font-semibold">
           View Details
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 function DestinationModal({ destination, onClose }) {
-  const photo1 = destination.photos?.[0] || destination.image;
-  const photo2 = destination.photos?.[1] || destination.image;
-  const photo3 = destination.photos?.[2] || destination.image;
+  const fallbackImage =
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200";
+
+  const photo1 = destination.photos?.[0] || destination.image || fallbackImage;
+  const photo2 = destination.photos?.[1] || destination.image || fallbackImage;
+  const photo3 = destination.photos?.[2] || destination.image || fallbackImage;
+
+  const mapUrl =
+    destination.location?.lat && destination.location?.lng
+      ? `https://www.google.com/maps?q=${destination.location.lat},${destination.location.lng}`
+      : `https://www.google.com/maps/search/${encodeURIComponent(
+          destination.name + " " + destination.country
+        )}`;
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      <div
-        className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative">
@@ -258,6 +386,9 @@ function DestinationModal({ destination, onClose }) {
             <img
               src={photo1}
               alt={destination.name}
+              onError={(e) => {
+                e.currentTarget.src = fallbackImage;
+              }}
               className="w-full h-full object-cover rounded-tl-3xl"
             />
 
@@ -265,12 +396,18 @@ function DestinationModal({ destination, onClose }) {
               <img
                 src={photo2}
                 alt={destination.name}
+                onError={(e) => {
+                  e.currentTarget.src = fallbackImage;
+                }}
                 className="w-full h-full object-cover rounded-tr-3xl"
               />
 
               <img
                 src={photo3}
                 alt={destination.name}
+                onError={(e) => {
+                  e.currentTarget.src = fallbackImage;
+                }}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -285,13 +422,13 @@ function DestinationModal({ destination, onClose }) {
         </div>
 
         <div className="p-8">
-          <div className="flex items-start justify-between mb-6">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-5 mb-6">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                {destination.name}, {destination.country}
+                {destination.name}
               </h2>
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                   <span className="font-semibold">
@@ -302,24 +439,59 @@ function DestinationModal({ destination, onClose }) {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1 text-purple-600 font-semibold">
+                <div className="flex items-center gap-1 text-cyan-600 font-semibold">
                   <DollarSign className="w-5 h-5" />
                   <span>{destination.price || "Depends on trip"}</span>
                 </div>
               </div>
             </div>
+
+            <a
+              href={mapUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="px-5 py-3 bg-cyan-50 text-cyan-700 rounded-xl hover:bg-cyan-100 transition font-semibold flex items-center gap-2"
+            >
+              <MapPinned className="w-5 h-5" />
+              View Map
+            </a>
           </div>
 
           <div className="space-y-6">
+            {/* INFO CARDS */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-gray-50 rounded-2xl p-4">
+                <h4 className="font-semibold text-gray-900 mb-1">Category</h4>
+                <p className="capitalize text-gray-600">
+                  {destination.category || "Destination"}
+                </p>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-4">
+                <h4 className="font-semibold text-gray-900 mb-1">Country</h4>
+                <p className="text-gray-600">{destination.country}</p>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-4">
+                <h4 className="font-semibold text-gray-900 mb-1">City</h4>
+                <p className="text-gray-600">
+                  {destination.city || "Unknown"}
+                </p>
+              </div>
+            </div>
+
+            {/* ABOUT */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 About
               </h3>
               <p className="text-gray-700 leading-relaxed">
-                {destination.description}
+                {destination.description ||
+                  "This is a real destination discovered from travel data."}
               </p>
             </div>
 
+            {/* HIGHLIGHTS */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
                 Top Highlights
@@ -330,9 +502,9 @@ function DestinationModal({ destination, onClose }) {
                   (highlight, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-2 text-gray-700"
+                      className="flex items-center gap-2 text-gray-700 bg-gray-50 rounded-xl px-4 py-3"
                     >
-                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
                       <span>{highlight}</span>
                     </div>
                   )
@@ -340,6 +512,7 @@ function DestinationModal({ destination, onClose }) {
               </div>
             </div>
 
+            {/* ACTIVITIES */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
                 Activities
@@ -350,7 +523,7 @@ function DestinationModal({ destination, onClose }) {
                   (activity, index) => (
                     <span
                       key={index}
-                      className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold"
+                      className="px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-semibold capitalize"
                     >
                       {activity}
                     </span>
@@ -359,6 +532,7 @@ function DestinationModal({ destination, onClose }) {
               </div>
             </div>
 
+            {/* BEST TIME */}
             <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-5 h-5 text-cyan-600" />
@@ -372,18 +546,46 @@ function DestinationModal({ destination, onClose }) {
               </p>
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <button className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all font-semibold">
-                Book Now
-              </button>
+            {/* TRAVEL TIPS */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Travel Tips
+              </h3>
 
-              <button className="px-6 border-2 border-purple-500 text-purple-600 rounded-xl hover:bg-purple-50 transition-colors font-semibold">
-                Save
+              <div className="space-y-2">
+                {(destination.travelTips || [
+                  "Visit early morning to avoid crowds.",
+                  "Carry comfortable shoes.",
+                  "Check weather before visiting.",
+                ]).map((tip, index) => (
+                  <div
+                    key={index}
+                    className="bg-cyan-50 text-cyan-700 px-4 py-3 rounded-xl"
+                  >
+                    {tip}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* BUTTONS */}
+            <div className="flex flex-col md:flex-row gap-3 pt-4">
+              <a
+                href={mapUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 rounded-xl hover:shadow-lg transition-all font-semibold text-center"
+              >
+                View on Google Maps
+              </a>
+
+              <button className="px-6 border-2 border-cyan-500 text-cyan-600 rounded-xl hover:bg-cyan-50 transition-colors font-semibold">
+                Save Destination
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

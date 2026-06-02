@@ -101,6 +101,7 @@ router.get("/countries", async (req, res) => {
 router.get("/live", async (req, res) => {
   try {
     const { country, category = "all", search = "" } = req.query;
+    const normalizedSearch = search.trim().toLowerCase();
 
     if (!country) {
       return res.status(400).json({ message: "Country is required" });
@@ -110,7 +111,12 @@ router.get("/live", async (req, res) => {
       country: { $regex: country, $options: "i" },
       ...(category !== "all" ? { category } : {}),
       ...(search
-        ? { name: { $regex: search, $options: "i" } }
+        ? {
+            $or: [
+              { name: { $regex: normalizedSearch, $options: "i" } },
+              { description: { $regex: normalizedSearch, $options: "i" } },
+            ],
+          }
         : {}),
     };
 

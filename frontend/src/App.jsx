@@ -6,6 +6,7 @@ import { AppLayout } from './components/NavBar';
 import { Explore } from './pages/Explore';
 import { MyTrips } from './pages/MyTrips';
 import { Calendar } from './pages/Calendar';
+import { AITripPlanner } from './pages/AITripPlanner';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -25,6 +26,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route element={<AppLayout />}>
           <Route path='/dashboard' element={<Dashboard />} />
+          <Route path='/ai-planner' element={<AITripPlanner />} />  
           <Route path='/explore' element={<Explore />} />
           <Route path='/my-trips' element={<MyTrips />} />
           <Route path='/calendar' element={<Calendar />} />
