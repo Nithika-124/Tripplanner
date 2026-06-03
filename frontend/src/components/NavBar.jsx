@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { AuthModal } from "./AuthModal";
+import { NewTripModal } from "./NewTripModal";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard", icon: Home, exact: true },
@@ -460,6 +461,12 @@ export function AppLayout() {
         onClose={() => setIsAuthModalOpen(false)}
         initialTab={authModalTab}
         onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* New Trip Modal */}
+      <NewTripModal
+        isOpen={isNewTripModalOpen}
+        onClose={() => setIsNewTripModalOpen(false)}
       />
     </div>
   );

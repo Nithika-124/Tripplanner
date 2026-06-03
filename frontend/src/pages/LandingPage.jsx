@@ -415,7 +415,7 @@ function AIPlannerPreview() {
               </div>
 
               <motion.button
-                onClick={() => navigate("/ai-trip-planner")}
+                onClick={() => navigate("/ai-Planner")}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 className="w-full md:w-[480px] justify-center px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-2xl font-bold text-lg shadow-2xl shadow-blue-400/25 hover:shadow-blue-400/40 transition-all flex items-center gap-3"
@@ -613,10 +613,34 @@ function Features() {
 
 function HowItWorks() {
   const steps = [
-    { icon: Search, title: "Choose Your Destination", description: "Browse our extensive database of destinations or let AI suggest the perfect place.", step: "01" },
-    { icon: Calendar, title: "Build Your Itinerary", description: "Create a day-by-day plan with our smart itinerary builder.", step: "02" },
-    { icon: Users, title: "Invite Travel Companions", description: "Collaborate with friends and family. Share plans and make decisions together.", step: "03" },
-    { icon: Plane, title: "Start Your Journey", description: "Access your complete travel guide on any device with real-time updates.", step: "04" },
+    {
+      icon: Search,
+      title: "Discover Destinations",
+      description:
+        "Explore countries, categories, ratings, and travel places to find the perfect destination for your trip.",
+      step: "01",
+    },
+    {
+      icon: Sparkles,
+      title: "Create or Generate Your Trip",
+      description:
+        "Build your own trip manually or let AI create a smart plan using your budget, dates, interests, and travel style.",
+      step: "02",
+    },
+    {
+      icon: Calendar,
+      title: "Customize Your Itinerary",
+      description:
+        "Edit daily activities, manage bookings, add reminders, organize transport, and track your trip progress.",
+      step: "03",
+    },
+    {
+      icon: Plane,
+      title: "Travel With Confidence",
+      description:
+        "Access your complete trip dashboard, budget details, schedule, and travel updates anytime, anywhere.",
+      step: "04",
+    },
   ];
 
   return (
@@ -781,53 +805,6 @@ function FAQ() {
   );
 }
 
-function CTA() {
-  const navigate = useNavigate();
-  return (
-    <section className="py-24 px-4 relative overflow-hidden">
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 " />
-        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/30 rounded-full blur-3xl" />
-      </div>
-      <div className="max-w-5xl mx-auto relative">
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-sm border border-white/20 rounded-3xl p-12 md:p-16 text-center">
-          <motion.div initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.2 }} className="flex justify-center mb-6">
-            <div className="bg-gradient-to-br from-blue-500 to-cyan-500 w-16 h-16 rounded-full flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-          </motion.div>
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            Ready to Start Your
-            <span className="block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Next Adventure?</span>
-          </h2>
-          <p className="text-xl text-blue-200 mb-10 max-w-2xl mx-auto">Join thousands of travelers who are already planning smarter, traveling better, and creating unforgettable memories.</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <motion.button 
-              onClick={() => navigate('/dashboard')}
-              whileHover={{ scale: 1.05 }} 
-              whileTap={{ scale: 0.95 }} 
-              className="px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full font-semibold text-lg shadow-lg hover:shadow-cyan-500/50 transition-shadow flex items-center gap-2"
-            >
-              Get Started Free <ArrowRight className="w-5 h-5" />
-            </motion.button>
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-full font-semibold text-lg hover:bg-white/20 transition-colors">
-              View Demo
-            </motion.button>
-          </div>
-          <div className="mt-10 pt-8 border-t border-white/10">
-            <p className="text-sm text-blue-300 mb-4">Trusted by travelers worldwide</p>
-            <div className="flex flex-wrap justify-center gap-6 text-blue-200 text-sm">
-              <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full" /><span>No credit card required</span></div>
-              <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full" /><span>Free forever plan</span></div>
-              <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full" /><span>Cancel anytime</span></div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
 function ContactUs() {
   return (
     <section id="contact" className="py-24 px-6">
@@ -976,7 +953,6 @@ export function LandingPage() {
         <HowItWorks />
         <Testimonials />
         <FAQ />
-        <CTA />
         <ContactUs />
       </main>
       <Footer />
