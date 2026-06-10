@@ -12,16 +12,94 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import API from "../../api/api";
+import { Loader2 } from "lucide-react";
 
 export function NewTripModal({ isOpen, onClose }) {
   const [destinations, setDestinations] = useState([
     { id: Date.now(), value: "" },
   ]);
 
+  const [loading, setLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    title: "",
+    startDate: "",
+    endDate: "",
+    budget: "",
+    travelers: 1,
+    hotelPreference: "",
+    transportationPreference: "driving-car",
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const cleanDestinations = destinations
+      .map((d) => d.value.trim())
+      .filter(Boolean);
+
+    if (!formData.title.trim()) {
+      alert("Please enter a trip name");
+      return;
+    }
+
+    if (cleanDestinations.length === 0) {
+      alert("Please enter at least one destination");
+      return;
+    }
+
+    if (!formData.startDate || !formData.endDate) {
+      alert("Please select start and end dates");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const previewRes = await API.post("/trips/preview", {
+        title: formData.title,
+        destinations: cleanDestinations,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        hotelPreference: formData.hotelPreference,
+        transportationPreference: formData.transportationPreference,
+        budget: Number(formData.budget) || 0,
+      });
+
+      await API.post("/trips", {
+        ...previewRes.data,
+        travelers: Number(formData.travelers) || 1,
+      });
+
+      alert("Trip created successfully!");
+
+      setFormData({
+        title: "",
+        startDate: "",
+        endDate: "",
+        budget: "",
+        travelers: 1,
+        hotelPreference: "",
+        transportationPreference: "driving-car",
+      });
+
+      setDestinations([{ id: Date.now(), value: "" }]);
+      onClose();
+
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Trip creation failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-4 sm:p-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -35,7 +113,7 @@ export function NewTripModal({ isOpen, onClose }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 24 }}
             transition={{ type: "spring", duration: 0.5 }}
-            className="relative z-10 w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl"
+            className="relative z-10 my-6 w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl"
           >
             <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 px-8 py-7 text-white">
               <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
@@ -71,7 +149,10 @@ export function NewTripModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            <form className="grid gap-6 p-8">
+            <form 
+              onSubmit={handleSubmit} 
+              className="grid max-h-[70vh] gap-6 p-6 overflow-y-auto sm:p-8"
+            >
               <div>
                 <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
                   <Tag className="h-4 w-4 text-blue-600" />
@@ -79,6 +160,10 @@ export function NewTripModal({ isOpen, onClose }) {
                 </label>
                 <input
                   type="text"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   placeholder="e.g. Summer in Paris"
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                 />
@@ -172,6 +257,10 @@ export function NewTripModal({ isOpen, onClose }) {
                   </label>
                   <input
                     type="date"
+                    value={formData.startDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startDate: e.target.value })
+                    }
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                   />
                 </div>
@@ -183,6 +272,10 @@ export function NewTripModal({ isOpen, onClose }) {
                   </label>
                   <input
                     type="date"
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endDate: e.target.value })
+                    }
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                   />
                 </div>
@@ -196,6 +289,10 @@ export function NewTripModal({ isOpen, onClose }) {
                   </label>
                   <input
                     type="number"
+                    value={formData.budget}
+                    onChange={(e) =>
+                      setFormData({ ...formData, budget: e.target.value })
+                    }
                     placeholder="e.g. 1500"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                   />
@@ -208,6 +305,10 @@ export function NewTripModal({ isOpen, onClose }) {
                   </label>
                   <input
                     type="number"
+                    value={formData.travelers}
+                    onChange={(e) =>
+                      setFormData({ ...formData, travelers: e.target.value })
+                    }
                     placeholder="e.g. 2"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                   />
@@ -220,7 +321,13 @@ export function NewTripModal({ isOpen, onClose }) {
                     <Hotel className="h-4 w-4 text-orange-500" />
                     Hotel Preference
                   </label>
-                  <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10">
+                  <select
+                    value={formData.hotelPreference}
+                    onChange={(e) =>
+                      setFormData({ ...formData, hotelPreference: e.target.value })
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                  >
                     <option>Select Hotel Type</option>
                     <option>Budget</option>
                     <option>Mid Range</option>
@@ -233,7 +340,13 @@ export function NewTripModal({ isOpen, onClose }) {
                     <Plane className="h-4 w-4 text-blue-500" />
                     Transportation
                   </label>
-                  <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10">
+                  <select
+                    value={formData.transportationPreference}
+                    onChange={(e) =>
+                      setFormData({ ...formData, transportationPreference: e.target.value })
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                  >
                     <option>Select Transportation</option>
                     <option>Flight</option>
                     <option>Train</option>
@@ -260,12 +373,20 @@ export function NewTripModal({ isOpen, onClose }) {
                 </button>
 
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: loading ? 1 : 1.02 }}
+                  whileTap={{ scale: loading ? 1 : 0.98 }}
                   type="submit"
-                  className="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-8 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/25 transition hover:shadow-xl hover:shadow-blue-500/30"
+                  disabled={loading}
+                  className="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-8 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/25 transition hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Create Trip
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Trip"
+                  )}
                 </motion.button>
               </div>
             </form>
