@@ -1,228 +1,409 @@
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Calendar as CalendarIcon, Clock, MapPin, Bell,
-  ChevronLeft, ChevronRight, Check, AlertTriangle
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Plane,
+  Hotel,
+  MapPin,
+  Clock,
+  Sparkles,
 } from "lucide-react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import API from "../../api/api";
 
-const events = [
-  { id: 1, day: 15, time: "08:30", title: "Flight to Paris", location: "Colombo Airport", type: "Transport", color: "bg-blue-500" },
-  { id: 2, day: 15, time: "15:00", title: "Hotel check-in", location: "Le Marais Hotel", type: "Hotel", color: "bg-purple-500" },
-  { id: 3, day: 16, time: "09:00", title: "Eiffel Tower visit", location: "Champ de Mars", type: "Activity", color: "bg-cyan-500" },
-  { id: 4, day: 16, time: "13:30", title: "Louvre Museum", location: "Rue de Rivoli", type: "Activity", color: "bg-emerald-500" },
-  { id: 5, day: 18, time: "19:30", title: "Dinner reservation", location: "Le Jules Verne", type: "Food", color: "bg-rose-500" },
-  { id: 6, day: 20, time: "10:00", title: "Versailles day trip", location: "Palace of Versailles", type: "Trip", color: "bg-amber-500" },
-];
-
-const reminders = [
-  { title: "Leave hotel 30 minutes early", time: "Tomorrow, 8:00 AM", icon: AlertTriangle },
-  { title: "Check Louvre ticket QR code", time: "Jun 16, 12:30 PM", icon: Check },
-  { title: "Taxi pickup confirmation", time: "Jun 20, 9:15 AM", icon: Bell },
-];
-
-const categories = ["All", "Transport", "Hotel", "Activity", "Food", "Trip"];
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function Calendar() {
-  const [selectedDay, setSelectedDay] = useState(15);
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 5, 1)); // June 2026
+  const navigate = useNavigate();
+  const { openNewTripModal } = useOutletContext() || {};
 
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(new Date().getDate());
+
+  useEffect(() => {
+    fetchTrips();
+  }, []);
+
+  const fetchTrips = async () => {
+    try {
+      const res = await API.get("/trips/my-trips");
+      setTrips(res.data || []);
+    } catch (error) {
+      console.log(error);
+      setTrips([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
+  const monthName = currentDate.toLocaleString("en-US", { month: "long" });
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
-  const resetToToday = () => {
-    const today = new Date();
-    setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
-    setSelectedDay(today.getDate());
-  };
-
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const currentMonthName = monthNames[currentDate.getMonth()];
-  const currentYear = currentDate.getFullYear();
-
-  // Calendar Logic
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
-  const startOffset = (firstDayOfMonth + 6) % 7; // Adjust for Monday start
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const startOffset = (firstDay + 6) % 7;
 
   const calendarDays = useMemo(() => {
     const days = [];
+
     for (let i = 0; i < startOffset; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) days.push(i);
-    const remaining = 7 - (days.length % 7);
-    if (remaining < 7) for (let i = 0; i < remaining; i++) days.push(null);
+
     return days;
   }, [startOffset, daysInMonth]);
 
-  const filteredEvents = useMemo(() => {
-    const isCurrentMonthJune2026 = currentDate.getMonth() === 5 && currentDate.getFullYear() === 2026;
-    if (!isCurrentMonthJune2026) return [];
-    
-    return events.filter((e) => {
-      const matchDay = e.day === selectedDay;
-      const matchCat = activeCategory === "All" || e.type === activeCategory;
-      return matchDay && matchCat;
+  const events = useMemo(() => {
+    const list = [];
+
+    trips.forEach((trip) => {
+      if (trip.startDate) {
+        const start = new Date(trip.startDate);
+
+        list.push({
+          id: `${trip._id}-start`,
+          day: start.getDate(),
+          month: start.getMonth(),
+          year: start.getFullYear(),
+          time: "08:30 AM",
+          title: `${trip.title || "Trip"} starts`,
+          location: getLocation(trip),
+          type: "Transport",
+          icon: Plane,
+        });
+      }
+
+      if (trip.endDate) {
+        const end = new Date(trip.endDate);
+
+        list.push({
+          id: `${trip._id}-end`,
+          day: end.getDate(),
+          month: end.getMonth(),
+          year: end.getFullYear(),
+          time: "07:00 PM",
+          title: `${trip.title || "Trip"} ends`,
+          location: getLocation(trip),
+          type: "Trip",
+          icon: MapPin,
+        });
+      }
     });
-  }, [selectedDay, activeCategory, currentDate]);
+
+    return list;
+  }, [trips]);
+
+  const selectedEvents = events.filter(
+    (event) =>
+      event.day === selectedDay &&
+      event.month === month &&
+      event.year === year
+  );
+
+  const monthEvents = events.filter(
+    (event) => event.month === month && event.year === year
+  );
+
+  const hasEvent = (day) =>
+    events.some(
+      (event) =>
+        event.day === day && event.month === month && event.year === year
+    );
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+    setSelectedDay(1);
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+    setSelectedDay(1);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-73px)] flex items-center justify-center bg-slate-50">
+        <p className="text-blue-600 font-bold">Loading calendar...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 font-sans text-slate-800">
-
-
-
-      {/* Main Layout */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Left: Calendar Grid */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-[1.5rem] shadow-sm border border-slate-200/80 overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Schedule</p>
-                <h2 className="text-xl font-bold text-slate-900 mt-1">{currentMonthName} {currentYear}</h2>
-              </div>
-              <div className="flex items-center gap-1">
-                <button onClick={prevMonth} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition"><ChevronLeft className="w-4 h-4" /></button>
-                <button onClick={resetToToday} className="px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg">Today</button>
-                <button onClick={nextMonth} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition"><ChevronRight className="w-4 h-4" /></button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-7 bg-slate-50/50 border-b border-slate-100">
-              {weekDays.map(d => <div key={d} className="p-2 text-center text-xs font-bold text-slate-400">{d}</div>)}
-            </div>
-
-            <div className="grid grid-cols-7">
-              {calendarDays.map((day, i) => {
-                const isCurrentMonthJune2026 = currentDate.getMonth() === 5 && currentDate.getFullYear() === 2026;
-                const dayEvents = isCurrentMonthJune2026 ? events.filter(e => e.day === day) : [];
-                const isSelected = selectedDay === day;
-                const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
-
-                return (
-                  <button
-                    key={i}
-                    onClick={() => day && setSelectedDay(day)}
-                    disabled={!day}
-                    className={`group relative aspect-square p-1.5 md:p-2 border-t border-r border-slate-100/50 transition-all duration-150 text-left
-                      ${!day ? "bg-slate-50/40 cursor-default" : isSelected ? "bg-blue-50 z-10 ring-inset ring-1 ring-blue-200" : "bg-white hover:bg-slate-50"}`}
-                  >
-                    {day && (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <span className={`flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-full text-[11px] md:text-xs font-bold transition-all
-                            ${isToday ? "bg-blue-600 text-white shadow-sm" : isSelected ? "bg-blue-100 text-blue-700" : "text-slate-500 group-hover:text-slate-800"}`}>
-                            {day}
-                          </span>
-                        </div>
-                        <div className="mt-0.5 md:mt-1 space-y-0.5 hidden md:block">
-                          {dayEvents.slice(0, 2).map(event => (
-                            <div key={event.id} className="flex items-center gap-1">
-                              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${event.color}`} />
-                              <span className="text-[10px] font-medium text-slate-600 truncate">{event.title}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+    <div className="min-h-[calc(100vh-73px)] bg-slate-50 px-4 py-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-black text-slate-900">Calendar</h1>
+          <p className="text-slate-500 mt-1">
+            Your travel schedule and plans
+          </p>
         </div>
 
-        {/* Right: Agenda */}
-        <div className="space-y-6">
-          <motion.div
-            key={selectedDay}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-200/80"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Selected</p>
-                <h3 className="text-2xl font-bold text-slate-900 mt-1">{currentMonthName} {selectedDay}</h3>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                <Clock className="w-5 h-5" />
-              </div>
-            </div>
+        <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6">
+          {/* Calendar Card */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={prevMonth}
+                className="p-2 rounded-xl hover:bg-slate-100"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
 
-            <div className="space-y-3">
-              {filteredEvents.length > 0 ? (
-                filteredEvents.map((event, idx) => (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/80 border border-slate-100 hover:border-slate-200 transition"
-                  >
-                    <div className={`w-1 h-full min-h-[40px] rounded-full ${event.color}`} />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{event.type}</span>
-                        <span className="text-xs font-bold text-slate-500">{event.time}</span>
-                      </div>
-                      <h4 className="font-bold text-slate-800 mt-0.5">{event.title}</h4>
-                      <div className="flex items-center gap-1 mt-1 text-slate-500">
-                        <MapPin className="w-3 h-3" />
-                        <span className="text-xs">{event.location}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                  <CalendarIcon className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm font-medium">No events planned</p>
-                </div>
-              )}
-            </div>
-          </motion.div>
+              <h2 className="text-xl font-bold text-slate-900">
+                {monthName} {year}
+              </h2>
 
-          <div className="bg-gradient-to-br from-cyan-500 to-blue-500 rounded-[1.5rem] p-5 shadow-sm text-white">
-            <h3 className="text-sm font-bold mb-3">Quick Filters</h3>
-            <div className="flex flex-wrap gap-2">
-              {categories.map(cat => (
+              <div className="flex items-center gap-2">
                 <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 ${activeCategory === cat ? "bg-white text-blue-600 shadow-sm" : "bg-white/20 text-white hover:bg-white/30"
-                    }`}
+                  onClick={() => {
+                    const today = new Date();
+                    setCurrentDate(today);
+                    setSelectedDay(today.getDate());
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-sm font-bold"
                 >
-                  {cat}
+                  Today
                 </button>
+
+                <button
+                  onClick={nextMonth}
+                  className="p-2 rounded-xl hover:bg-slate-100"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-2 mb-3">
+              {weekDays.map((day) => (
+                <div
+                  key={day}
+                  className="text-center text-xs font-bold text-slate-400"
+                >
+                  {day}
+                </div>
               ))}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-white/20">
-              <h3 className="text-sm font-bold mb-3">Reminders</h3>
-              <div className="space-y-2">
-                {reminders.map((r, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 transition cursor-pointer group">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition">
-                      <r.icon className="w-4 h-4" />
+            <div className="grid grid-cols-7 gap-2">
+              {calendarDays.map((day, index) => (
+                <button
+                  key={index}
+                  disabled={!day}
+                  onClick={() => setSelectedDay(day)}
+                  className={`relative h-16 rounded-2xl text-sm font-bold transition ${
+                    !day
+                      ? "opacity-0"
+                      : selectedDay === day
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                      : "hover:bg-blue-50 text-slate-700"
+                  }`}
+                >
+                  {day}
+
+                  {day && hasEvent(day) && (
+                    <span
+                      className={`absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
+                        selectedDay === day ? "bg-white" : "bg-blue-500"
+                      }`}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Panel */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 min-h-[420px]">
+            {trips.length === 0 ? (
+              <EmptyCalendar openNewTripModal={openNewTripModal} navigate={navigate} />
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-blue-600">
+                      Selected
+                    </p>
+                    <h2 className="text-3xl font-black text-slate-900">
+                      {monthName} {selectedDay}
+                    </h2>
+                  </div>
+
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+
+                {selectedEvents.length === 0 ? (
+                  <div className="h-72 flex flex-col items-center justify-center text-center">
+                    <CalendarIcon className="w-16 h-16 text-slate-300 mb-4" />
+                    <h3 className="text-xl font-bold text-slate-900">
+                      No events today
+                    </h3>
+                    <p className="text-slate-500 text-sm mt-2">
+                      Select another date or create a new trip.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedEvents.map((event) => (
+                      <EventCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {trips.length > 0 && (
+          <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 mt-6">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl font-black text-slate-900">
+                  Upcoming Events
+                </h2>
+                <button className="text-blue-600 text-sm font-bold">
+                  View all
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {monthEvents.slice(0, 4).map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center gap-4 rounded-2xl bg-slate-50 p-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex flex-col items-center justify-center text-blue-600">
+                      <span className="text-xs font-bold">
+                        {monthName.slice(0, 3)}
+                      </span>
+                      <span className="text-sm font-black">{event.day}</span>
                     </div>
+
                     <div>
-                      <p className="text-sm font-medium">{r.title}</p>
-                      <p className="text-xs text-blue-100">{r.time}</p>
+                      <h3 className="font-bold text-slate-900">
+                        {event.title}
+                      </h3>
+                      <p className="text-xs text-slate-500">{event.time}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <h2 className="text-xl font-black text-slate-900 mb-5">
+                Quick Stats
+              </h2>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-2xl bg-blue-50 p-5 text-center">
+                  <p className="text-3xl font-black text-blue-600">
+                    {monthEvents.length}
+                  </p>
+                  <p className="text-sm text-slate-500">Events</p>
+                </div>
+
+                <div className="rounded-2xl bg-cyan-50 p-5 text-center">
+                  <p className="text-3xl font-black text-cyan-600">
+                    {trips.length}
+                  </p>
+                  <p className="text-sm text-slate-500">Trips</p>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </main>
+        )}
+      </div>
     </div>
+  );
+}
+
+function EventCard({ event }) {
+  const Icon = event.icon || Plane;
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+      <div className="flex items-start gap-4">
+        <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
+          <Icon className="w-5 h-5 text-blue-600" />
+        </div>
+
+        <div className="flex-1">
+          <div className="flex justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-blue-600 uppercase">
+                {event.type}
+              </p>
+              <h3 className="font-black text-slate-900">{event.title}</h3>
+            </div>
+
+            <span className="text-xs font-bold text-slate-500">
+              {event.time}
+            </span>
+          </div>
+
+          <p className="text-sm text-slate-500 mt-2 flex items-center gap-1">
+            <MapPin className="w-4 h-4" />
+            {event.location}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyCalendar({ openNewTripModal, navigate }) {
+  return (
+    <div className="h-full min-h-[420px] flex flex-col items-center justify-center text-center">
+      <div className="w-24 h-24 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
+        <CalendarIcon className="w-12 h-12 text-blue-300" />
+      </div>
+
+      <h2 className="text-2xl font-black text-slate-900">
+        No events yet
+      </h2>
+
+      <p className="text-slate-500 max-w-xs mt-3 mb-6">
+        Create a trip to see your itinerary and travel events here.
+      </p>
+
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={() => openNewTripModal?.()}
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-lg flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          Create New Trip
+        </button>
+
+        <button
+          onClick={() => navigate("/ai-planner")}
+          className="px-6 py-3 rounded-xl border border-blue-200 text-blue-600 font-bold flex items-center gap-2 justify-center"
+        >
+          <Sparkles className="w-5 h-5" />
+          Try AI Planner
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function getLocation(trip) {
+  if (!trip.destinations || trip.destinations.length === 0) return "Location TBD";
+
+  const first = trip.destinations[0];
+
+  if (typeof first === "string") return first;
+
+  return (
+    [first.city, first.country].filter(Boolean).join(", ") ||
+    first.name ||
+    "Location TBD"
   );
 }

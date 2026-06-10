@@ -1,407 +1,435 @@
-import { useState, useEffect } from 'react';
-import { MapPin, Calendar, Users, DollarSign, MoreVertical, Share2, Plane, Hotel, Camera, Utensils, CheckCircle2, Circle } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useEffect, useMemo, useState } from "react";
+import {
+  MapPin,
+  Calendar,
+  Users,
+  DollarSign,
+  MoreVertical,
+  Share2,
+  CheckCircle2,
+  Circle,
+  Plus,
+  Sparkles,
+  Plane,
+  Hotel,
+  Clock,
+  Loader2,
+} from "lucide-react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import API from "../../api/api";
 
-const MOCK_TRIPS = [
-    {
-        id: '1',
-        destination: 'Summer in Paris',
-        location: 'Paris, France',
-        image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-        startDate: 'Jun 15',
-        endDate: 'Jul 18',
-        duration: '7 Days',
-        travelers: 2,
-        budget: '$2,400',
-        progress: 75,
-        status: 'planned',
-        activities: ['Sightseeing', 'Food Tour', 'Museums'],
-        daysUntil: 8,
-        tasks: [
-            { id: '1', title: 'Book flight tickets', completed: true, category: 'booking' },
-            { id: '2', title: 'Reserve hotel accommodation', completed: true, category: 'booking' },
-            { id: '3', title: 'Purchase travel insurance', completed: true, category: 'booking' },
-            { id: '4', title: 'Plan daily itinerary', completed: false, category: 'planning' },
-            { id: '5', title: 'Book Louvre Museum tickets', completed: false, category: 'booking' },
-            { id: '6', title: 'Reserve dinner at Le Jules Verne', completed: false, category: 'booking' },
-            { id: '7', title: 'Pack luggage', completed: false, category: 'packing' },
-            { id: '8', title: 'Download offline maps', completed: false, category: 'planning' },
-        ]
-    },
-    {
-        id: '2',
-        destination: 'London Adventure',
-        location: 'London, England',
-        image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800',
-        startDate: 'Aug 5',
-        endDate: 'Aug 12',
-        duration: '8 Days',
-        travelers: 4,
-        budget: '$3,200',
-        progress: 45,
-        status: 'planned',
-        activities: ['Theater', 'Sightseeing', 'Shopping'],
-        daysUntil: 29,
-        tasks: [
-            { id: '1', title: 'Book flight tickets', completed: true, category: 'booking' },
-            { id: '2', title: 'Reserve hotel accommodation', completed: false, category: 'booking' },
-            { id: '3', title: 'Book theater tickets', completed: false, category: 'booking' },
-        ]
-    },
-    {
-        id: '3',
-        destination: 'Tokyo Experience',
-        location: 'Tokyo, Japan',
-        image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800',
-        startDate: 'Sep 1',
-        endDate: 'Sep 10',
-        duration: '10 Days',
-        travelers: 2,
-        budget: '$4,500',
-        progress: 20,
-        status: 'planned',
-        activities: ['Culture', 'Food', 'Technology'],
-        daysUntil: 56,
-        tasks: [
-            { id: '1', title: 'Book flight tickets', completed: false, category: 'booking' },
-            { id: '2', title: 'Apply for visa', completed: false, category: 'planning' },
-        ]
-    },
-];
+const fallbackImage =
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&h=600&fit=crop&auto=format";
 
-const normalizeTrip = (trip) => {
-    const start = trip.startDate ? new Date(trip.startDate) : null;
-    const end = trip.endDate ? new Date(trip.endDate) : null;
-    const diffTime = start && end ? Math.abs(end - start) : 0;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    const today = new Date();
-    const daysUntil = start ? Math.ceil((start - today) / (1000 * 60 * 60 * 24)) : 999;
+const getLocation = (trip) => {
+  if (!trip.destinations || trip.destinations.length === 0) return "Location TBD";
 
-    return {
-        id: trip._id || trip.id,
-        destination: trip.title || (trip.destinations && trip.destinations[0]) || 'New Trip',
-        location: (trip.destinations && trip.destinations.join(', ')) || 'TBD',
-        image: trip.image || 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
-        startDate: trip.startDate ? new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD',
-        endDate: trip.endDate ? new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD',
-        duration: trip.duration || `${diffDays || 0} Days`,
-        travelers: trip.travelers || 1,
-        budget: typeof trip.budget === 'number' ? `$${trip.budget.toLocaleString()}` : (trip.budget || '$0'),
-        progress: trip.progress || 0,
-        status: trip.status || 'planned',
-        activities: trip.activities || [],
-        daysUntil: isNaN(daysUntil) ? 0 : (daysUntil < 0 ? 0 : daysUntil),
-        tasks: trip.tasks || []
-    };
+  const first = trip.destinations[0];
+
+  if (typeof first === "string") return first;
+
+  return (
+    [first.city, first.country].filter(Boolean).join(", ") ||
+    first.name ||
+    "Location TBD"
+  );
 };
 
+const formatDate = (date) => {
+  if (!date) return "TBD";
+
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const getDuration = (startDate, endDate) => {
+  if (!startDate || !endDate) return "0 Days";
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+  return `${Math.max(diff, 1)} Days`;
+};
+
+const getDaysUntil = (startDate) => {
+  if (!startDate) return 0;
+
+  const today = new Date();
+  const start = new Date(startDate);
+  const diff = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+
+  return Math.max(diff, 0);
+};
+
+const normalizeTrip = (trip) => ({
+  id: trip._id,
+  title: trip.title || "Untitled Trip",
+  location: getLocation(trip),
+  image: trip.image || fallbackImage,
+  startDate: formatDate(trip.startDate),
+  endDate: formatDate(trip.endDate),
+  duration: getDuration(trip.startDate, trip.endDate),
+  travelers: trip.travelers || 1,
+  budget:
+    typeof trip.budget === "number"
+      ? `$${trip.budget.toLocaleString()}`
+      : "$0",
+  progress: trip.progress || 0,
+  status: trip.status || "planned",
+  daysUntil: getDaysUntil(trip.startDate),
+  tasks: trip.tasks || [],
+  raw: trip,
+});
+
 export function MyTrips() {
-    const [filter, setFilter] = useState('all');
-    const [trips, setTrips] = useState(MOCK_TRIPS);
+  const navigate = useNavigate();
+  const { openNewTripModal } = useOutletContext() || {};
 
-    useEffect(() => {
-        fetchTrips();
-    }, []);
+  const [filter, setFilter] = useState("all");
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [taskStates, setTaskStates] = useState({});
 
-    const fetchTrips = async () => {
-        try {
-            const res = await API.get("/trips/my-trips");
-            if (res.data && res.data.length > 0) {
-                setTrips(res.data.map(normalizeTrip));
-            } else {
-                setTrips(MOCK_TRIPS);
-            }
-        } catch (error) {
-            console.log(error);
-            setTrips(MOCK_TRIPS);
-        }
-    };
+  useEffect(() => {
+    fetchTrips();
+  }, []);
 
-    const nearestTrip = trips.length > 0
-        ? trips.reduce((nearest, trip) => ((trip.daysUntil ?? 999) < (nearest.daysUntil ?? 999) ? trip : nearest))
-        : null;
+  const fetchTrips = async () => {
+    try {
+      setLoading(true);
+      const res = await API.get("/trips/my-trips");
+      setTrips((res.data || []).map(normalizeTrip));
+    } catch (error) {
+      console.error(error);
+      setTrips([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const [taskStates, setTaskStates] = useState(
-        nearestTrip ? Object.fromEntries(nearestTrip.tasks.map(task => [task.id, task.completed])) : {}
+  const nearestTrip = useMemo(() => {
+    if (trips.length === 0) return null;
+
+    return trips.reduce((nearest, trip) =>
+      trip.daysUntil < nearest.daysUntil ? trip : nearest
     );
+  }, [trips]);
 
-    useEffect(() => {
-        if (nearestTrip) {
-            setTaskStates(Object.fromEntries(nearestTrip.tasks.map(task => [task.id, task.completed])));
-        }
-    }, [nearestTrip?.id]);
+  useEffect(() => {
+    if (!nearestTrip) return;
 
-    const toggleTask = (taskId) => {
-        setTaskStates(prev => ({ ...prev, [taskId]: !prev[taskId] }));
-    };
+    const initialStates = {};
+    nearestTrip.tasks.forEach((task) => {
+      initialStates[task._id] = task.completed;
+    });
 
-    const completedTasks = nearestTrip ? nearestTrip.tasks.filter(task => taskStates[task.id]).length : 0;
-    const totalTasks = nearestTrip ? nearestTrip.tasks.length : 0;
+    setTaskStates(initialStates);
+  }, [nearestTrip?.id]);
 
-    const filteredTrips = filter === 'all' ? trips : trips.filter(trip => trip.status === filter);
+  const toggleTask = async (taskId) => {
+    if (!nearestTrip) return;
 
+    try {
+      setTaskStates((prev) => ({
+        ...prev,
+        [taskId]: !prev[taskId],
+      }));
+
+      await API.patch(`/trips/${nearestTrip.id}/tasks/${taskId}`);
+      fetchTrips();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update task");
+    }
+  };
+
+  const filteredTrips =
+    filter === "all" ? trips : trips.filter((trip) => trip.status === filter);
+
+  const completedTasks = nearestTrip
+    ? nearestTrip.tasks.filter((task) => taskStates[task._id]).length
+    : 0;
+
+  const totalTasks = nearestTrip?.tasks.length || 0;
+
+  const checklistProgress =
+    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  if (loading) {
     return (
-        <div className="min-h-[calc(100vh-73px)] py-8 px-4">
-            <div className="max-w-7xl mx-auto">
-                {/* Nearest Trip Detail */}
-                <div className="bg-gradient-to-br from-cyan-500 to-blue-800 rounded-3xl overflow-hidden shadow-xl mb-8">
-                    <div className="mb-8 pt-10">
-                        <h1 className="text-center text-4xl font-bold text-white mb-2">Manage Your Trips</h1>
-                        <p className="text-center text-white/90">Manage AI-generated plans, custom trips, checklists, budgets, reminders, and real-time travel progress from one professional workspace.</p>
-                    </div>
-                    <div className="grid lg:grid-cols-5 gap-6 p-8">
-                        {/* Trip Image and Info */}
-                        <div className="lg:col-span-2">
-                            <div className="relative rounded-2xl overflow-hidden h-64 mb-4">
-                                <img
-                                    src={nearestTrip.image}
-                                    alt={nearestTrip.destination}
-                                    className="w-full h-full object-cover"
-                                />
-                                <div className="absolute top-4 left-4">
-                                    <span className="bg-white/20 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full font-semibold border border-white/30">
-                                        Next Trip in {nearestTrip.daysUntil} days
-                                    </span>
-                                </div>
-                            </div>
-
-                            <h2 className="text-2xl font-bold text-white mb-2">{nearestTrip.destination}</h2>
-                            <div className="flex items-center gap-2 text-purple-100 mb-4">
-                                <MapPin className="w-4 h-4" />
-                                <span>{nearestTrip.location}</span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/30 backdrop-blur-md rounded-xl p-3 border border-white/20">
-                                    <div className="flex items-center gap-2 text-white text-sm mb-1">
-                                        <Calendar className="w-4 h-4" />
-                                        <span>Dates</span>
-                                    </div>
-                                    <p className="text-white font-semibold">{nearestTrip.startDate} - {nearestTrip.endDate}</p>
-                                </div>
-
-                                <div className="bg-white/30 backdrop-blur-md rounded-xl p-3 border border-white/20">
-                                    <div className="flex items-center gap-2 text-white text-sm mb-1">
-                                        <Users className="w-4 h-4" />
-                                        <span>Travelers</span>
-                                    </div>
-                                    <p className="text-white font-semibold">{nearestTrip.travelers} People</p>
-                                </div>
-
-                                <div className="bg-white/30 backdrop-blur-md rounded-xl p-3 border border-white/20">
-                                    <div className="flex items-center gap-2 text-white text-sm mb-1">
-                                        <DollarSign className="w-4 h-4" />
-                                        <span>Budget</span>
-                                    </div>
-                                    <p className="text-white font-semibold">{nearestTrip.budget}</p>
-                                </div>
-
-                                <div className="bg-white/30 backdrop-blur-md rounded-xl p-3 border border-white/20">
-                                    <div className="flex items-center gap-2 text-white text-sm mb-1">
-                                        <Plane className="w-4 h-4" />
-                                        <span>Duration</span>
-                                    </div>
-                                    <p className="text-white font-semibold">{nearestTrip.duration}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Task Bar */}
-                        <div className="lg:col-span-3 bg-white/90 backdrop-blur-md rounded-2xl p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-1">Trip Checklist</h3>
-                                    <p className="text-sm text-gray-600">
-                                        {completedTasks} of {totalTasks} tasks completed
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-3xl font-bold text-purple-600">{Math.round((completedTasks / totalTasks) * 100)}%</div>
-                                    <div className="text-xs text-gray-500">Complete</div>
-                                </div>
-                            </div>
-
-                            {/* Progress Bar */}
-                            <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-6">
-                                <div
-                                    className="h-full bg-gradient-to-r from-cyan-400 to-cyan-500 rounded-full transition-all duration-500"
-                                    style={{ width: `${(completedTasks / totalTasks) * 100}%` }}
-                                ></div>
-                            </div>
-
-                            {/* Task Categories */}
-                            <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-                                {['booking', 'planning', 'packing', 'other'].map((category) => {
-                                    const categoryTasks = nearestTrip.tasks.filter(task => task.category === category);
-                                    if (categoryTasks.length === 0) return null;
-
-                                    const categoryIcons = {
-                                        booking: Hotel,
-                                        planning: Calendar,
-                                        packing: Camera,
-                                        other: Utensils
-                                    };
-
-                                    const Icon = categoryIcons[category];
-
-                                    return (
-                                        <div key={category}>
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <Icon className="w-4 h-4 text-purple-500" />
-                                                <h4 className="font-semibold text-gray-900 capitalize">{category}</h4>
-                                            </div>
-                                            <div className="space-y-2 ml-6">
-                                                {categoryTasks.map((task) => (
-                                                    <label
-                                                        key={task.id}
-                                                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
-                                                    >
-                                                        <button
-                                                            onClick={() => toggleTask(task.id)}
-                                                            className="flex-shrink-0"
-                                                        >
-                                                            {taskStates[task.id] ? (
-                                                                <CheckCircle2 className="w-5 h-5 text-cyan-500" />
-                                                            ) : (
-                                                                <Circle className="w-5 h-5 text-gray-300 group-hover:text-gray-400" />
-                                                            )}
-                                                        </button>
-                                                        <span className={`flex-1 ${taskStates[task.id] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                                                            {task.title}
-                                                        </span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Filter Tabs */}
-                <div className="flex gap-4 mb-8 border-b border-gray-200">
-                    {['all', 'planned', 'ongoing', 'completed'].map((status) => (
-                        <button
-                            key={status}
-                            onClick={() => setFilter(status)}
-                            className={`pb-3 px-2 capitalize transition-all ${filter === status
-                                ? 'text-cyan-500 border-b-2 border-cyan-500 font-semibold'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            {status}
-                            {status === 'all' && (
-                                <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                                    {trips.length}
-                                </span>
-                            )}
-                        </button>
-                    ))}
-                </div>
-
-                {/* All Trips Grid */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredTrips.map((trip) => (
-                        <TripCard key={trip.id} trip={trip} />
-                    ))}
-                </div>
-            </div>
-        </div>
+      <div className="min-h-[calc(100vh-73px)] flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+      </div>
     );
+  }
+
+  if (trips.length === 0) {
+    return (
+      <div className="min-h-[calc(100vh-73px)] bg-slate-50 px-4 py-8">
+        <div className="max-w-7xl mx-auto">
+          <section className="bg-white rounded-3xl shadow-xl border border-slate-200 p-10 text-center">
+            <div className="w-28 h-28 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-6">
+              <span className="text-6xl">🧳</span>
+            </div>
+
+            <h1 className="text-3xl font-black text-slate-900 mb-3">
+              No trips yet
+            </h1>
+
+            <p className="text-slate-500 max-w-xl mx-auto mb-8">
+              You haven't created any trips yet. Start your first adventure by creating a custom trip or generating one with AI.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => openNewTripModal?.()}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-lg flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Create New Trip
+              </button>
+
+              <button
+                onClick={() => navigate("/ai-planner")}
+                className="px-6 py-3 rounded-xl border border-blue-200 text-blue-600 font-bold flex items-center justify-center gap-2 hover:bg-blue-50"
+              >
+                <Sparkles className="w-5 h-5" />
+                Try AI Planner
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-73px)] bg-slate-50 py-8 px-4">
+      <div className="max-w-7xl mx-auto">
+        {nearestTrip && (
+          <section className="bg-gradient-to-br from-cyan-500 to-blue-800 rounded-3xl overflow-hidden shadow-xl mb-8 p-8">
+            <div className="text-center text-white mb-8">
+              <h1 className="text-4xl font-black mb-2">Manage Your Trips</h1>
+              <p className="text-blue-100">
+                Manage AI-generated plans, custom trips, checklists, budgets, reminders, and progress.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-[0.9fr_1.2fr] gap-6">
+              <div className="text-white">
+                <div className="relative rounded-3xl overflow-hidden mb-5">
+                  <img
+                    src={nearestTrip.image}
+                    alt={nearestTrip.title}
+                    className="w-full h-72 object-cover"
+                  />
+
+                  <span className="absolute top-4 left-4 bg-white/25 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold">
+                    Next Trip in {nearestTrip.daysUntil} days
+                  </span>
+                </div>
+
+                <h2 className="text-3xl font-black mb-2">
+                  {nearestTrip.title}
+                </h2>
+
+                <p className="flex items-center gap-2 text-blue-100 mb-5">
+                  <MapPin className="w-5 h-5" />
+                  {nearestTrip.location}
+                </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <InfoBox icon={Calendar} label="Dates" value={`${nearestTrip.startDate} - ${nearestTrip.endDate}`} />
+                  <InfoBox icon={Users} label="Travelers" value={`${nearestTrip.travelers} People`} />
+                  <InfoBox icon={DollarSign} label="Budget" value={nearestTrip.budget} />
+                  <InfoBox icon={Plane} label="Duration" value={nearestTrip.duration} />
+                </div>
+              </div>
+
+              <div className="bg-white/90 rounded-3xl p-6">
+                <div className="flex items-start justify-between mb-5">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900">
+                      Trip Checklist
+                    </h3>
+                    <p className="text-slate-500">
+                      {completedTasks} of {totalTasks} tasks completed
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-4xl font-black text-purple-600">
+                      {checklistProgress}%
+                    </p>
+                    <p className="text-sm text-slate-500">Complete</p>
+                  </div>
+                </div>
+
+                <div className="w-full bg-slate-200 rounded-full h-2 mb-6">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500"
+                    style={{ width: `${checklistProgress}%` }}
+                  />
+                </div>
+
+                <div className="space-y-4 max-h-72 overflow-y-auto pr-2">
+                  {nearestTrip.tasks.length === 0 ? (
+                    <p className="text-slate-500 text-sm">
+                      No checklist tasks available.
+                    </p>
+                  ) : (
+                    nearestTrip.tasks.map((task) => {
+                      const completed = taskStates[task._id];
+
+                      return (
+                        <button
+                          key={task._id}
+                          onClick={() => toggleTask(task._id)}
+                          className="w-full flex items-center gap-3 text-left"
+                        >
+                          {completed ? (
+                            <CheckCircle2 className="w-5 h-5 text-cyan-500" />
+                          ) : (
+                            <Circle className="w-5 h-5 text-slate-300" />
+                          )}
+
+                          <span
+                            className={`text-sm ${
+                              completed
+                                ? "line-through text-slate-400"
+                                : "text-slate-700"
+                            }`}
+                          >
+                            {task.title}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <div className="flex items-center gap-8 border-b border-slate-200 mb-8">
+          {["all", "planned", "ongoing", "completed"].map((item) => (
+            <button
+              key={item}
+              onClick={() => setFilter(item)}
+              className={`pb-4 font-semibold capitalize ${
+                filter === item
+                  ? "text-cyan-600 border-b-2 border-cyan-500"
+                  : "text-slate-500"
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTrips.map((trip) => (
+            <TripCard key={trip.id} trip={trip} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoBox({ icon: Icon, label, value }) {
+  return (
+    <div className="rounded-2xl bg-white/20 border border-white/25 p-4">
+      <div className="flex items-center gap-2 text-blue-100 text-sm mb-2">
+        <Icon className="w-4 h-4" />
+        {label}
+      </div>
+      <p className="text-white font-black">{value}</p>
+    </div>
+  );
 }
 
 function TripCard({ trip }) {
-    return (
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-            {/* Image */}
-            <div className="relative h-48">
-                <img
-                    src={trip.image}
-                    alt={trip.destination}
-                    className="w-full h-full object-cover"
-                />
-                <div className="absolute top-4 left-4">
-                    <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
-                        {trip.daysUntil} days left
-                    </span>
-                </div>
-                <button className="absolute top-4 right-4 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
-                    <MoreVertical className="w-4 h-4 text-gray-600" />
-                </button>
-            </div>
+  return (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition">
+      <div className="relative">
+        <img
+          src={trip.image}
+          alt={trip.title}
+          className="w-full h-48 object-cover"
+        />
 
-            {/* Content */}
-            <div className="p-5">
-                <div className="mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{trip.destination}</h3>
-                    <div className="flex items-center gap-1 text-gray-500 text-sm">
-                        <MapPin className="w-4 h-4" />
-                        <span>{trip.location}</span>
-                    </div>
-                </div>
+        <span className="absolute top-4 left-4 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+          {trip.daysUntil} days left
+        </span>
 
-                {/* Trip Details */}
-                <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
-                            <Calendar className="w-4 h-4 text-purple-500" />
-                            <span>{trip.startDate} - {trip.endDate}</span>
-                        </div>
-                        <span className="text-gray-500">{trip.duration}</span>
-                    </div>
+        <button className="absolute top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center">
+          <MoreVertical className="w-5 h-5 text-slate-500" />
+        </button>
+      </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
-                            <Users className="w-4 h-4 text-purple-500" />
-                            <span>{trip.travelers} Travelers</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                            <DollarSign className="w-4 h-4 text-purple-500" />
-                            <span>{trip.budget}</span>
-                        </div>
-                    </div>
-                </div>
+      <div className="p-5">
+        <h3 className="text-xl font-black text-slate-900 mb-1">
+          {trip.title}
+        </h3>
 
-                {/* Progress */}
-                <div className="mb-4">
-                    <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-gray-600">Planning Progress</span>
-                        <span className="font-semibold text-cyan-500">{trip.progress}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-gradient-to-r from-cyan-400 to-cyan-500 rounded-full transition-all"
-                            style={{ width: `${trip.progress}%` }}
-                        ></div>
-                    </div>
-                </div>
+        <p className="flex items-center gap-2 text-slate-500 mb-4">
+          <MapPin className="w-4 h-4" />
+          {trip.location}
+        </p>
 
-                {/* Activities */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {trip.activities.slice(0, 3).map((activity, index) => (
-                        <span
-                            key={index}
-                            className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full"
-                        >
-                            {activity}
-                        </span>
-                    ))}
-                </div>
+        <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 mb-4">
+          <p className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-purple-500" />
+            {trip.startDate} - {trip.endDate}
+          </p>
 
-                {/* Actions */}
-                <div className="flex gap-2">
-                    <button className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all font-semibold text-sm">
-                        View Details
-                    </button>
-                    <button className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
-                        <Share2 className="w-4 h-4 text-gray-600" />
-                    </button>
-                </div>
-            </div>
+          <p className="flex items-center gap-2 justify-end">
+            <Clock className="w-4 h-4 text-blue-500" />
+            {trip.duration}
+          </p>
+
+          <p className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-purple-500" />
+            {trip.travelers} Travelers
+          </p>
+
+          <p className="flex items-center gap-2 justify-end">
+            <DollarSign className="w-4 h-4 text-purple-500" />
+            {trip.budget}
+          </p>
         </div>
-    );
+
+        <div className="mb-4">
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-slate-500">Planning Progress</span>
+            <span className="font-bold text-cyan-600">
+              {trip.progress}%
+            </span>
+          </div>
+
+          <div className="w-full bg-slate-200 rounded-full h-2">
+            <div
+              className="h-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500"
+              style={{ width: `${trip.progress}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button className="flex-1 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 py-3 text-white font-bold">
+            View Details
+          </button>
+
+          <button className="w-12 rounded-xl border border-slate-200 flex items-center justify-center">
+            <Share2 className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

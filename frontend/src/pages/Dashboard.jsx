@@ -1,119 +1,216 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, MapPin, Calendar, Users, TrendingUp, Clock,
-  DollarSign, Plane, ArrowRight, Star, CheckCircle,
-  Globe, BarChart3, Target
+import {
+  Plus,
+  MapPin,
+  Calendar,
+  Users,
+  DollarSign,
+  Plane,
+  ArrowRight,
+  Star,
+  CheckCircle,
+  Globe,
+  BarChart3,
+  Target,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-
-const upcomingTrips = [
-  {
-    id: "1",
-    name: "Summer in Paris",
-    destination: "Paris, France",
-    image: "https://images.unsplash.com/photo-1687858349767-fec548333fa1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-    dates: "Jun 15 - Jun 22, 2026",
-    daysLeft: 42,
-    travelers: 2,
-    budget: 3000,
-    spent: 450,
-    status: "confirmed",
-    activities: 12,
-    progress: 85,
-  },
-  {
-    id: "2",
-    name: "London Adventure",
-    destination: "London, UK",
-    image: "https://images.unsplash.com/photo-1775582854287-83568dbc9c8e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-    dates: "Aug 10 - Aug 17, 2026",
-    daysLeft: 98,
-    travelers: 4,
-    budget: 5000,
-    spent: 200,
-    status: "planning",
-    activities: 8,
-    progress: 45,
-  },
-];
-
-const pastTrips = [
-  {
-    id: "3",
-    name: "Venice Getaway",
-    destination: "Venice, Italy",
-    image: "https://images.unsplash.com/photo-1767564272518-875ef88de331?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-    dates: "Mar 5 - Mar 10, 2026",
-    travelers: 2,
-    rating: 5,
-  },
-  {
-    id: "4",
-    name: "Singapore Exploration",
-    destination: "Singapore",
-    image: "https://images.unsplash.com/photo-1768557410710-01f506326bf7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-    dates: "Jan 12 - Jan 18, 2026",
-    travelers: 3,
-    rating: 4,
-  },
-  {
-    id: "5",
-    name: "Kyoto in Spring",
-    destination: "Kyoto, Japan",
-    image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=280&fit=crop&auto=format",
-    dates: "Apr 1 – Apr 7, 2025",
-    rating: 5,
-  },
-  {
-    id: "6",
-    name: "Santorini Escape",
-    destination: "Santorini, Greece",
-    image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=400&h=280&fit=crop&auto=format",
-    dates: "Sep 14 – Sep 20, 2025",
-    rating: 5,
-  },
-];
-
-const quickActions = [
-  {
-    title: "Plan New Trip",
-    description: "Start planning your next adventure",
-    icon: Plus,
-    color: "from-blue-500 to-cyan-500",
-    action: "/new-trip",
-  },
-  {
-    title: "Explore Destinations",
-    description: "Discover amazing places",
-    icon: Globe,
-    color: "from-indigo-500 to-purple-500",
-    action: "/explore",
-  },
-  {
-    title: "Travel Insights",
-    description: "View your travel statistics",
-    icon: BarChart3,
-    color: "from-cyan-500 to-blue-500",
-    action: "/insights",
-  },
-  {
-    title: "Bucket List",
-    description: "Manage your dream destinations",
-    icon: Target,
-    color: "from-purple-500 to-indigo-600",
-    action: "/bucket-list",
-  },
-];
+import API from "../../api/api";
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { openNewTripModal } = useOutletContext() || {};
+
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? "Good morning" : currentHour < 18 ? "Good afternoon" : "Good evening";
+  const greeting =
+    currentHour < 12
+      ? "Good morning"
+      : currentHour < 18
+      ? "Good afternoon"
+      : "Good evening";
+
+  useEffect(() => {
+    fetchTrips();
+  }, []);
+
+  const fetchTrips = async () => {
+    try {
+      const res = await API.get("/trips/my-trips");
+      setTrips(res.data || []);
+    } catch (error) {
+      console.log(error);
+      setTrips([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "TBD";
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const getDaysLeft = (date) => {
+    if (!date) return 0;
+    const today = new Date();
+    const tripDate = new Date(date);
+    const diff = tripDate - today;
+    return Math.max(Math.ceil(diff / (1000 * 60 * 60 * 24)), 0);
+  };
+
+  const getLocation = (trip) => {
+    if (!trip.destinations || trip.destinations.length === 0) return "Destination not set";
+    const first = trip.destinations[0];
+    if (typeof first === "string") return first;
+    return [first.city, first.country].filter(Boolean).join(", ") || first.name || "Destination";
+  };
+
+  const getImage = () =>
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&h=600&fit=crop&auto=format";
+
+  const totalBudget = trips.reduce((sum, trip) => sum + (trip.budget || 0), 0);
+  const upcomingTrips = trips.filter((trip) => getDaysLeft(trip.startDate) >= 0);
+  const completedTrips = trips.filter((trip) => trip.status === "completed");
+
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-73px)] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (trips.length === 0) {
+    return (
+      <div className="min-h-[calc(100vh-73px)] py-8 px-4">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 md:p-12 text-white shadow-xl">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <Plane className="w-8 h-8" />
+                <span className="text-xl opacity-90">{greeting}, Traveler!</span>
+              </div>
+
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                Welcome to TripPlanner
+              </h1>
+
+              <p className="text-blue-100 text-lg max-w-2xl">
+                You have no trips yet. Create your first adventure or let AI build a smart travel plan for you.
+              </p>
+            </div>
+          </section>
+
+          <section className="grid lg:grid-cols-2 gap-8">
+            <div className="bg-white rounded-3xl shadow-xl p-10 flex flex-col items-center text-center">
+              <div className="w-28 h-28 rounded-full bg-blue-50 flex items-center justify-center mb-6">
+                <span className="text-6xl">🧳</span>
+              </div>
+
+              <h2 className="text-3xl font-bold text-slate-900 mb-3">
+                No trips yet
+              </h2>
+
+              <p className="text-slate-500 max-w-md mb-8">
+                Start planning your first journey by creating a custom trip with destinations, dates, budget, and preferences.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => openNewTripModal?.()}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-lg hover:shadow-xl transition"
+                >
+                  + Create New Trip
+                </button>
+
+                <button
+                  onClick={() => navigate("/ai-planner")}
+                  className="px-6 py-3 rounded-xl border border-blue-200 text-blue-600 font-bold hover:bg-blue-50 transition"
+                >
+                  ✨ Try AI Planner
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl shadow-xl p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-slate-900">
+                  Popular Destinations
+                </h3>
+                <button
+                  onClick={() => navigate("/explore")}
+                  className="text-blue-600 font-semibold text-sm"
+                >
+                  View All
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  ["Paris, France", "4.9", "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500"],
+                  ["Bali, Indonesia", "4.8", "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=500"],
+                  ["Tokyo, Japan", "4.9", "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=500"],
+                  ["Santorini, Greece", "5.0", "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=500"],
+                ].map(([name, rating, image]) => (
+                  <div
+                    key={name}
+                    className="rounded-2xl overflow-hidden bg-slate-50 shadow-sm"
+                  >
+                    <img
+                      src={image}
+                      alt={name}
+                      className="h-32 w-full object-cover"
+                    />
+                    <div className="p-3">
+                      <h4 className="font-bold text-slate-900 text-sm">{name}</h4>
+                      <p className="text-xs text-amber-500 font-bold">⭐ {rating}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 flex items-center justify-center text-white">
+                <Sparkles className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">
+                  Let AI plan your perfect trip
+                </h3>
+                <p className="text-slate-500 text-sm">
+                  Answer a few questions and TripPlanner will generate an itinerary for you.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate("/ai-planner")}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold"
+            >
+              Get Started
+            </button>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-73px)] py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Personalized Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -127,12 +224,7 @@ export function Dashboard() {
 
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-4">
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                >
-                  <Plane className="w-8 h-8" />
-                </motion.div>
+                <Plane className="w-8 h-8" />
                 <span className="text-xl opacity-90">{greeting}, Traveler!</span>
               </div>
 
@@ -141,210 +233,124 @@ export function Dashboard() {
               </h1>
 
               <p className="text-xl text-blue-100 max-w-2xl mb-8">
-                You have <span className="font-bold text-white">{upcomingTrips.length} upcoming trips</span> and
-                <span className="font-bold text-white"> {upcomingTrips[0].daysLeft} days</span> until your next adventure!
+                You have{" "}
+                <span className="font-bold text-white">
+                  {upcomingTrips.length} upcoming trips
+                </span>{" "}
+                and{" "}
+                <span className="font-bold text-white">
+                  {getDaysLeft(upcomingTrips[0]?.startDate)} days
+                </span>{" "}
+                until your next adventure!
               </p>
 
               <div className="flex flex-wrap gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => openNewTripModal ? openNewTripModal() : navigate("/new-trip")}
+                <button
+                  onClick={() => openNewTripModal?.()}
                   className="px-8 py-4 bg-white text-blue-600 rounded-full font-semibold flex items-center gap-2 shadow-lg"
                 >
                   <Plus className="w-5 h-5" />
                   Plan New Trip
-                </motion.button>
+                </button>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <button
                   onClick={() => navigate("/calendar")}
-                  className="px-8 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 rounded-full font-semibold flex items-center gap-2"
+                  className="px-8 py-4 bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 rounded-full font-semibold"
                 >
                   View Calendar
-                </motion.button>
+                </button>
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Stats Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
-          >
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-              <MapPin className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-800 mb-1">16</div>
-            <div className="text-gray-600 font-medium mb-1">Total Trips</div>
-            <div className="text-xs text-gray-500">+3 this year</div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.15 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
-          >
-            <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center mb-4">
-              <Globe className="w-6 h-6 text-cyan-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-800 mb-1">12</div>
-            <div className="text-gray-600 font-medium mb-1">Countries</div>
-            <div className="text-xs text-gray-500">4 continents</div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
-          >
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
-              <Calendar className="w-6 h-6 text-indigo-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-800 mb-1">42d</div>
-            <div className="text-gray-600 font-medium mb-1">Next Trip</div>
-            <div className="text-xs text-gray-500">Paris, France</div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.25 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
-          >
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
-              <DollarSign className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-800 mb-1">$12.5k</div>
-            <div className="text-gray-600 font-medium mb-1">Total Spent</div>
-            <div className="text-xs text-gray-500">This year</div>
-          </motion.div>
-        </motion.div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
+          <StatCard icon={MapPin} value={trips.length} label="Total Trips" sub="+ this year" color="blue" />
+          <StatCard icon={Globe} value={new Set(trips.map(getLocation)).size} label="Places" sub="visited/planned" color="cyan" />
+          <StatCard icon={Calendar} value={upcomingTrips.length} label="Upcoming" sub="planned trips" color="indigo" />
+          <StatCard icon={DollarSign} value={`$${totalBudget.toLocaleString()}`} label="Total Budget" sub="all trips" color="purple" />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          {/* Upcoming Trips */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <Calendar className="w-6 h-6 text-blue-600" />
                 Upcoming Trips
               </h2>
-              <button className="text-blue-600 hover:text-blue-700 font-semibold text-sm">
+
+              <button
+                onClick={() => navigate("/my-trips")}
+                className="text-blue-600 hover:text-blue-700 font-semibold text-sm"
+              >
                 View All
               </button>
             </div>
 
             <div className="space-y-6">
-              {upcomingTrips.map((trip, index) => (
+              {upcomingTrips.slice(0, 3).map((trip, index) => (
                 <motion.div
-                  key={trip.id}
+                  key={trip._id || index}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
-                  whileHover={{ x: 5 }}
-                  onClick={() => navigate(`/app/trips/${trip.id}`)}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer hover:shadow-2xl transition-all"
+                  transition={{ delay: 0.1 + index * 0.1 }}
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all"
                 >
                   <div className="flex flex-col md:flex-row">
-                    <div className="relative w-full md:w-48 h-48 md:h-auto flex-shrink-0">
+                    <div className="relative w-full md:w-48 h-48 md:h-auto">
                       <img
-                        src={trip.image}
-                        alt={trip.destination}
+                        src={getImage()}
+                        alt={trip.title}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-4 left-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          trip.status === "confirmed"
-                            ? "bg-emerald-500 text-white"
-                            : "bg-amber-500 text-white"
-                        }`}>
-                          {trip.status === "confirmed" ? "✓ Confirmed" : "Planning"}
-                        </span>
-                      </div>
+
                       <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg">
                         <div className="text-xs text-gray-600">Days left</div>
-                        <div className="text-xl font-bold text-blue-600">{trip.daysLeft}</div>
+                        <div className="text-xl font-bold text-blue-600">
+                          {getDaysLeft(trip.startDate)}
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex-1 p-6">
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex justify-between mb-4">
                         <div>
-                          <h3 className="text-2xl font-bold text-gray-800 mb-1">{trip.name}</h3>
+                          <h3 className="text-2xl font-bold text-gray-800 mb-1">
+                            {trip.title || "Untitled Trip"}
+                          </h3>
+
                           <div className="flex items-center gap-2 text-gray-600">
                             <MapPin className="w-4 h-4" />
-                            <span>{trip.destination}</span>
+                            <span>{getLocation(trip)}</span>
                           </div>
                         </div>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors"
+
+                        <button
+                          onClick={() => navigate("/my-trips")}
+                          className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center"
                         >
                           <ArrowRight className="w-5 h-5 text-blue-600" />
-                        </motion.button>
+                        </button>
                       </div>
 
                       <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Dates</div>
-                          <div className="text-sm font-semibold text-gray-800">{trip.dates}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Travelers</div>
-                          <div className="text-sm font-semibold text-gray-800 flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            {trip.travelers}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Activities</div>
-                          <div className="text-sm font-semibold text-gray-800">{trip.activities} planned</div>
-                        </div>
+                        <Info label="Dates" value={`${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}`} />
+                        <Info label="Budget" value={`$${trip.budget || 0}`} />
+                        <Info label="Status" value={trip.status || "planned"} />
                       </div>
 
-                      {/* Budget Progress */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-xs mb-2">
-                          <span className="text-gray-600">Budget</span>
+                      <div>
+                        <div className="flex justify-between text-xs mb-2">
+                          <span className="text-gray-600">Trip Planning</span>
                           <span className="font-semibold text-gray-800">
-                            ${trip.spent} / ${trip.budget}
+                            {trip.progress || 0}% Complete
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 rounded-full transition-all"
-                            style={{ width: `${(trip.spent / trip.budget) * 100}%` }}
-                          />
-                        </div>
-                      </div>
 
-                      {/* Trip Progress */}
-                      <div>
-                        <div className="flex items-center justify-between text-xs mb-2">
-                          <span className="text-gray-600">Trip Planning</span>
-                          <span className="font-semibold text-gray-800">{trip.progress}% Complete</span>
-                        </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all"
-                            style={{ width: `${trip.progress}%` }}
+                            className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full"
+                            style={{ width: `${trip.progress || 0}%` }}
                           />
                         </div>
                       </div>
@@ -355,163 +361,149 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Quick Actions */}
             <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">
+                Quick Actions
+              </h3>
+
               <div className="space-y-3">
-                {quickActions.map((action, index) => (
-                  <motion.button
-                    key={index}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + index * 0.05 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (action.action === "/new-trip" && openNewTripModal) {
-                        openNewTripModal();
-                      } else if (action.action) {
-                        navigate(action.action);
-                      }
-                    }}
-                    className="w-full bg-white rounded-xl shadow-lg p-4 flex items-center gap-4 hover:shadow-xl transition-shadow text-left"
-                  >
-                    <div className={`w-12 h-12 bg-gradient-to-br ${action.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                      <action.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-800">{action.title}</div>
-                      <div className="text-xs text-gray-500">{action.description}</div>
-                    </div>
-                    <ArrowRight className="w-5 h-5 text-gray-400" />
-                  </motion.button>
-                ))}
+                <QuickAction title="Plan New Trip" desc="Start planning your next adventure" icon={Plus} onClick={() => openNewTripModal?.()} />
+                <QuickAction title="Explore Destinations" desc="Discover amazing places" icon={Globe} onClick={() => navigate("/explore")} />
+                <QuickAction title="Travel Insights" desc="View your travel statistics" icon={BarChart3} onClick={() => navigate("/my-trips")} />
+                <QuickAction title="Try AI Planner" desc="Generate a smart itinerary" icon={Sparkles} onClick={() => navigate("/ai-planner")} />
               </div>
             </div>
 
-            {/* Travel Goals */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white"
-            >
+            <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white">
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <Target className="w-6 h-6" />
-                2026 Travel Goals
+                Travel Goals
               </h3>
+
               <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm">Visit 5 Countries</span>
-                    <span className="text-sm font-bold">3/5</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2">
-                    <div className="bg-white h-2 rounded-full" style={{ width: "60%" }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm">Plan 8 Trips</span>
-                    <span className="text-sm font-bold">6/8</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2">
-                    <div className="bg-white h-2 rounded-full" style={{ width: "75%" }} />
-                  </div>
-                </div>
+                <Goal label="Plan 5 Trips" value={`${Math.min(trips.length, 5)}/5`} width={`${Math.min((trips.length / 5) * 100, 100)}%`} />
+                <Goal label="Complete 3 Trips" value={`${completedTrips.length}/3`} width={`${Math.min((completedTrips.length / 3) * 100, 100)}%`} />
               </div>
-            </motion.div>
+            </div>
 
-            {/* Recent Activity */}
             <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Recent Activity</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">
+                Recent Activity
+              </h3>
+
               <div className="bg-white rounded-2xl shadow-lg p-4 space-y-3">
-                <div className="flex items-center gap-3 p-2">
-                  <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">Added 3 activities</p>
-                    <p className="text-xs text-gray-500">Paris</p>
-                  </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">2h ago</span>
-                </div>
+                {trips.slice(0, 3).map((trip) => (
+                  <div key={trip._id} className="flex items-center gap-3 p-2">
+                    <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    </div>
 
-                <div className="flex items-center gap-3 p-2">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-800 truncate">
+                        Trip created
+                      </p>
+                      <p className="text-xs text-gray-500">{trip.title}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">Updated dates</p>
-                    <p className="text-xs text-gray-500">London</p>
-                  </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">1d ago</span>
-                </div>
-
-                <div className="flex items-center gap-3 p-2">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Users className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">Invited 2 travelers</p>
-                    <p className="text-xs text-gray-500">Venice</p>
-                  </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">3d ago</span>
-                </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Past Trips */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <Star className="w-6 h-6 text-yellow-500" />
-              Past Adventures
-            </h2>
-            <button className="text-blue-600 hover:text-blue-700 font-semibold text-sm">
-              View All
-            </button>
-          </div>
+        {completedTrips.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Star className="w-6 h-6 text-yellow-500" />
+                Past Adventures
+              </h2>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {pastTrips.map((trip, index) => (
-              <motion.div
-                key={trip.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.7 + index * 0.1 }}
-                whileHover={{ y: -5 }}
-                onClick={() => navigate(`/app/trips/${trip.id}`)}
-                className="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-all"
-              >
-                <div className="relative h-40">
-                  <img
-                    src={trip.image}
-                    alt={trip.destination}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-bold text-gray-800">{trip.rating}.0</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {completedTrips.map((trip) => (
+                <div
+                  key={trip._id}
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden"
+                >
+                  <img src={getImage()} alt={trip.title} className="h-40 w-full object-cover" />
+                  <div className="p-4">
+                    <h3 className="font-bold text-gray-800">{trip.title}</h3>
+                    <p className="text-sm text-gray-600">{getLocation(trip)}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
+                    </p>
                   </div>
                 </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-gray-800 mb-1">{trip.name}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{trip.destination}</p>
-                  <p className="text-xs text-gray-500">{trip.dates}</p>
-                </div>
-              </motion.div>
-            ))}
+              ))}
+            </div>
           </div>
-        </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, value, label, sub, color }) {
+  const colors = {
+    blue: "bg-blue-100 text-blue-600",
+    cyan: "bg-cyan-100 text-cyan-600",
+    indigo: "bg-indigo-100 text-indigo-600",
+    purple: "bg-purple-100 text-purple-600",
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className={`w-12 h-12 ${colors[color]} rounded-xl flex items-center justify-center mb-4`}>
+        <Icon className="w-6 h-6" />
+      </div>
+      <div className="text-3xl font-bold text-gray-800 mb-1">{value}</div>
+      <div className="text-gray-600 font-medium mb-1">{label}</div>
+      <div className="text-xs text-gray-500">{sub}</div>
+    </div>
+  );
+}
+
+function Info({ label, value }) {
+  return (
+    <div>
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="text-sm font-semibold text-gray-800">{value}</div>
+    </div>
+  );
+}
+
+function QuickAction({ title, desc, icon: Icon, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full bg-white rounded-xl shadow-lg p-4 flex items-center gap-4 hover:shadow-xl transition text-left"
+    >
+      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+
+      <div className="flex-1">
+        <div className="font-semibold text-gray-800">{title}</div>
+        <div className="text-xs text-gray-500">{desc}</div>
+      </div>
+
+      <ArrowRight className="w-5 h-5 text-gray-400" />
+    </button>
+  );
+}
+
+function Goal({ label, value, width }) {
+  return (
+    <div>
+      <div className="flex justify-between mb-2">
+        <span className="text-sm">{label}</span>
+        <span className="text-sm font-bold">{value}</span>
+      </div>
+
+      <div className="w-full bg-white/20 rounded-full h-2">
+        <div className="bg-white h-2 rounded-full" style={{ width }} />
       </div>
     </div>
   );
