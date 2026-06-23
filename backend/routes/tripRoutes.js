@@ -112,6 +112,26 @@ router.get("/my-trips", protect, async (req, res) => {
   }
 });
 
+router.get("/:id", protect, async (req, res) => {
+  try {
+    const trip = await Trip.findOne({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    res.json(trip);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch trip",
+      error: error.message,
+    });
+  }
+});
+
 router.patch("/:id/tasks/:taskId", protect, async (req, res) => {
   try {
     const trip = await Trip.findOne({
@@ -140,6 +160,28 @@ router.patch("/:id/tasks/:taskId", protect, async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to update task",
+      error: error.message,
+    });
+  }
+});
+
+router.delete("/:id", protect, async (req, res) => {
+  try {
+    const trip = await Trip.findOne({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    await Trip.deleteOne({ _id: req.params.id });
+
+    res.json({ message: "Trip deleted successfully" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete trip",
       error: error.message,
     });
   }

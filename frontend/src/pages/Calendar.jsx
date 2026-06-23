@@ -9,15 +9,15 @@ import {
   MapPin,
   Clock,
   Sparkles,
+  Utensils,
 } from "lucide-react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import API from "../../api/api";
 
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function Calendar() {
   const navigate = useNavigate();
-  const { openNewTripModal } = useOutletContext() || {};
 
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,6 +77,53 @@ export function Calendar() {
         });
       }
 
+      // Add daily plan events if available
+      if (trip.dailyPlan && Array.isArray(trip.dailyPlan)) {
+        trip.dailyPlan.forEach((day) => {
+          if (trip.startDate) {
+            const startDate = new Date(trip.startDate);
+            const dayDate = new Date(
+              startDate.getFullYear(),
+              startDate.getMonth(),
+              startDate.getDate() + (day.day - 1)
+            );
+
+            // Add hotel suggestion event
+            if (day.hotelSuggestion && day.hotelSuggestion.name) {
+              list.push({
+                id: `${trip._id}-day${day.day}-hotel`,
+                day: dayDate.getDate(),
+                month: dayDate.getMonth(),
+                year: dayDate.getFullYear(),
+                time: "15:00",
+                title: `Check-in: ${day.hotelSuggestion.name}`,
+                location: day.hotelSuggestion.area || getLocation(trip),
+                type: "Hotel",
+                icon: Hotel,
+              });
+            }
+
+            // Add activity events
+            if (day.activities && Array.isArray(day.activities)) {
+              day.activities.forEach((activity, idx) => {
+                list.push({
+                  id: `${trip._id}-day${day.day}-activity${idx}`,
+                  day: dayDate.getDate(),
+                  month: dayDate.getMonth(),
+                  year: dayDate.getFullYear(),
+                  time: activity.time || "10:00 AM",
+                  title: activity.place,
+                  location: activity.activity || getLocation(trip),
+                  type: "Activity",
+                  icon: MapPin,
+                  cost: activity.cost,
+                });
+              });
+            }
+          }
+        });
+      }
+
       if (trip.endDate) {
         const end = new Date(trip.endDate);
 
@@ -108,11 +155,25 @@ export function Calendar() {
     (event) => event.month === month && event.year === year
   );
 
-  const hasEvent = (day) =>
-    events.some(
+  const hasEvent = (day) => {
+    // Check if any event exists on this day
+    const hasDirectEvent = events.some(
       (event) =>
         event.day === day && event.month === month && event.year === year
     );
+
+    // Check if day is within any trip's date range
+    const isInTripRange = trips.some((trip) => {
+      if (!trip.startDate || !trip.endDate) return false;
+      const start = new Date(trip.startDate);
+      const end = new Date(trip.endDate);
+      const checkDate = new Date(year, month, day);
+
+      return checkDate >= start && checkDate <= end;
+    });
+
+    return hasDirectEvent || isInTripRange;
+  };
 
   const nextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
@@ -190,37 +251,58 @@ export function Calendar() {
             </div>
 
             <div className="grid grid-cols-7 gap-2">
-              {calendarDays.map((day, index) => (
-                <button
-                  key={index}
-                  disabled={!day}
-                  onClick={() => setSelectedDay(day)}
-                  className={`relative h-16 rounded-2xl text-sm font-bold transition ${
-                    !day
-                      ? "opacity-0"
-                      : selectedDay === day
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-                      : "hover:bg-blue-50 text-slate-700"
-                  }`}
-                >
-                  {day}
+              {calendarDays.map((day, index) => {
+                // Check if this day is in a trip range
+                const inTripRange = day && trips.some((trip) => {
+                  if (!trip.startDate || !trip.endDate) return false;
+                  const start = new Date(trip.startDate);
+                  const end = new Date(trip.endDate);
+                  const checkDate = new Date(year, month, day);
+                  return checkDate >= start && checkDate <= end;
+                });
 
-                  {day && hasEvent(day) && (
-                    <span
-                      className={`absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
-                        selectedDay === day ? "bg-white" : "bg-blue-500"
-                      }`}
-                    />
-                  )}
-                </button>
-              ))}
+                const isStartOrEnd = day && trips.some((trip) => {
+                  if (!trip.startDate || !trip.endDate) return false;
+                  const start = new Date(trip.startDate);
+                  const end = new Date(trip.endDate);
+                  return (start.getDate() === day && start.getMonth() === month && start.getFullYear() === year) ||
+                         (end.getDate() === day && end.getMonth() === month && end.getFullYear() === year);
+                });
+
+                return (
+                  <button
+                    key={index}
+                    disabled={!day}
+                    onClick={() => setSelectedDay(day)}
+                    className={`relative h-16 rounded-2xl text-sm font-bold transition ${
+                      !day
+                        ? "opacity-0"
+                        : selectedDay === day
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                        : inTripRange
+                        ? "bg-blue-100 text-blue-900 hover:bg-blue-200"
+                        : "hover:bg-blue-50 text-slate-700"
+                    }`}
+                  >
+                    {day}
+
+                    {day && hasEvent(day) && selectedDay !== day && (
+                      <span
+                        className={`absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
+                          inTripRange ? "bg-blue-600" : "bg-blue-500"
+                        }`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Right Panel */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 min-h-[420px]">
             {trips.length === 0 ? (
-              <EmptyCalendar openNewTripModal={openNewTripModal} navigate={navigate} />
+              <EmptyCalendar navigate={navigate} />
             ) : (
               <>
                 <div className="flex items-center justify-between mb-6">
@@ -327,28 +409,53 @@ export function Calendar() {
 function EventCard({ event }) {
   const Icon = event.icon || Plane;
 
+  // Color coding based on event type
+  const getTypeColor = (type) => {
+    switch (type) {
+      case "Hotel":
+        return { bg: "bg-purple-100", text: "text-purple-600", icon: "text-purple-600" };
+      case "Activity":
+        return { bg: "bg-orange-100", text: "text-orange-600", icon: "text-orange-600" };
+      case "Food":
+        return { bg: "bg-amber-100", text: "text-amber-600", icon: "text-amber-600" };
+      case "Transport":
+        return { bg: "bg-green-100", text: "text-green-600", icon: "text-green-600" };
+      default:
+        return { bg: "bg-blue-100", text: "text-blue-600", icon: "text-blue-600" };
+    }
+  };
+
+  const colors = getTypeColor(event.type);
+
   return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+    <div className={`rounded-2xl border border-slate-100 ${colors.bg} p-4`}>
       <div className="flex items-start gap-4">
-        <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
-          <Icon className="w-5 h-5 text-blue-600" />
+        <div className={`w-11 h-11 rounded-xl ${colors.bg} flex items-center justify-center`}>
+          <Icon className={`w-5 h-5 ${colors.icon}`} />
         </div>
 
         <div className="flex-1">
           <div className="flex justify-between gap-3">
             <div>
-              <p className="text-xs font-bold text-blue-600 uppercase">
+              <p className={`text-xs font-bold uppercase ${colors.text}`}>
                 {event.type}
               </p>
               <h3 className="font-black text-slate-900">{event.title}</h3>
             </div>
 
-            <span className="text-xs font-bold text-slate-500">
-              {event.time}
-            </span>
+            <div className="text-right">
+              <span className="text-xs font-bold text-slate-500 block">
+                {event.time}
+              </span>
+              {event.cost && (
+                <span className={`text-sm font-bold ${colors.text} block mt-1`}>
+                  ${event.cost}
+                </span>
+              )}
+            </div>
           </div>
 
-          <p className="text-sm text-slate-500 mt-2 flex items-center gap-1">
+          <p className="text-sm text-slate-600 mt-2 flex items-center gap-1">
             <MapPin className="w-4 h-4" />
             {event.location}
           </p>
@@ -358,7 +465,7 @@ function EventCard({ event }) {
   );
 }
 
-function EmptyCalendar({ openNewTripModal, navigate }) {
+function EmptyCalendar({ navigate }) {
   return (
     <div className="h-full min-h-[420px] flex flex-col items-center justify-center text-center">
       <div className="w-24 h-24 rounded-3xl bg-blue-50 flex items-center justify-center mb-6">
@@ -375,11 +482,11 @@ function EmptyCalendar({ openNewTripModal, navigate }) {
 
       <div className="flex flex-col gap-3">
         <button
-          onClick={() => openNewTripModal?.()}
+          onClick={() => navigate("/ai-planner")}
           className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-lg flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
-          Create New Trip
+          Create AI Trip
         </button>
 
         <button

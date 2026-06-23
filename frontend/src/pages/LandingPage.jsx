@@ -152,7 +152,7 @@ export function Hero() {
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <motion.a
-            href="/dashboard"
+            href="#ai-planner"
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             className="group flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-[#060E1E] rounded-2xl font-bold text-base shadow-2xl shadow-blue-400/25 hover:shadow-blue-400/40 transition-all"
@@ -358,7 +358,7 @@ function AIPlannerPreview() {
   const navigate = useNavigate();
 
   return (
-    <section className="py-20 px-6 relative overflow-hidden">
+    <section id="ai-planner" className="py-20 px-6 relative overflow-hidden">
       <div className="max-w-[1500px] mx-auto">
         <div className="relative rounded-[28px] border border-cyan-400/25 bg-[#061426]/70 overflow-hidden px-10 md:px-16 py-14 md:py-16 shadow-[0_0_80px_rgba(0,180,255,0.08)]">
           <div className="absolute inset-0 opacity-[0.05]"/>

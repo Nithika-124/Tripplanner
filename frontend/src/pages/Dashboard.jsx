@@ -16,12 +16,11 @@ import {
   Sparkles,
   Loader2,
 } from "lucide-react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import API from "../../api/api";
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { openNewTripModal } = useOutletContext() || {};
 
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -127,10 +126,10 @@ export function Dashboard() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={() => openNewTripModal?.()}
+                  onClick= {() => navigate("/ai-planner")}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-lg hover:shadow-xl transition"
                 >
-                  + Create New Trip
+                  + Create AI Trip
                 </button>
 
                 <button
@@ -246,7 +245,7 @@ export function Dashboard() {
 
               <div className="flex flex-wrap gap-4">
                 <button
-                  onClick={() => openNewTripModal?.()}
+                  onClick={() => navigate("/ai-planner")}
                   className="px-8 py-4 bg-white text-blue-600 rounded-full font-semibold flex items-center gap-2 shadow-lg"
                 >
                   <Plus className="w-5 h-5" />
@@ -297,7 +296,7 @@ export function Dashboard() {
                   className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all"
                 >
                   <div className="flex flex-col md:flex-row">
-                    <div className="relative w-full md:w-48 h-48 md:h-auto">
+                    <div className="relative w-full md:w-54 h-48 md:h-auto">
                       <img
                         src={getImage()}
                         alt={trip.title}
@@ -367,10 +366,10 @@ export function Dashboard() {
                 Quick Actions
               </h3>
 
-              <div className="space-y-3">
-                <QuickAction title="Plan New Trip" desc="Start planning your next adventure" icon={Plus} onClick={() => openNewTripModal?.()} />
+              <div className="space-y-2">
+                <QuickAction title="Trip Calendar" desc="View your upcoming trips and travel schedule" icon={Calendar} onClick={() => navigate("/calendar")} />
                 <QuickAction title="Explore Destinations" desc="Discover amazing places" icon={Globe} onClick={() => navigate("/explore")} />
-                <QuickAction title="Travel Insights" desc="View your travel statistics" icon={BarChart3} onClick={() => navigate("/my-trips")} />
+                <QuickAction title="My Trips" desc="Manage your itineraries, progress, and travel history." icon={BarChart3} onClick={() => navigate("/my-trips")} />
                 <QuickAction title="Try AI Planner" desc="Generate a smart itinerary" icon={Sparkles} onClick={() => navigate("/ai-planner")} />
               </div>
             </div>

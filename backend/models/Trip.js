@@ -45,6 +45,8 @@ const tripSchema = new mongoose.Schema(
 
     title: String,
 
+    summary: String,
+
     destinations: [destinationSchema],
 
     startDate: Date,
@@ -67,6 +69,14 @@ const tripSchema = new mongoose.Schema(
       default: 0,
     },
 
+    budgetBreakdown: {
+      flight: Number,
+      hotel: Number,
+      food: Number,
+      transport: Number,
+      activities: Number,
+    },
+
     progress: {
       type: Number,
       default: 0,
@@ -78,6 +88,57 @@ const tripSchema = new mongoose.Schema(
     },
 
     tasks: [taskSchema],
+
+    image: String,
+
+    // AI Trip specific fields
+    aiGenerated: {
+      type: Boolean,
+      default: false,
+    },
+
+    dailyPlan: [{
+      day: Number,
+      title: String,
+      route: String,
+      city: String,
+      estimatedCost: Number,
+      hotelSuggestion: {
+        name: String,
+        area: String,
+        estimatedNightlyCost: Number,
+      },
+      activities: [{
+        time: String,
+        place: String,
+        activity: String,
+        cost: Number,
+        lat: Number,
+        lng: Number,
+      }],
+    }],
+
+    recommendations: [String],
+
+    hotels: [mongoose.Schema.Types.Mixed],
+
+    restaurants: [mongoose.Schema.Types.Mixed],
+
+    packing: [String],
+
+    weather: mongoose.Schema.Types.Mixed,
+
+    emergencyNumbers: [mongoose.Schema.Types.Mixed],
+
+    interests: [String],
+
+    notes: String,
+
+    travelStyle: String,
+
+    startLocation: String,
+
+    travelers: Number,
   },
   { timestamps: true }
 );

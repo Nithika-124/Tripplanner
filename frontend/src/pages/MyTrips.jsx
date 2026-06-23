@@ -15,11 +15,11 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import API from "../../api/api";
 
 const fallbackImage =
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&h=600&fit=crop&auto=format";
+  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=900&h=600&fit=crop&auto=format";
 
 const getLocation = (trip) => {
   if (!trip.destinations || trip.destinations.length === 0) return "Location TBD";
@@ -54,44 +54,146 @@ const getDuration = (startDate, endDate) => {
   return `${Math.max(diff, 1)} Days`;
 };
 
-const getDaysUntil = (startDate) => {
-  if (!startDate) return 0;
+const getDaysUntil = (startDate, endDate) => {
+  if (!startDate) return Number.MAX_SAFE_INTEGER;
 
   const today = new Date();
-  const start = new Date(startDate);
-  const diff = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+  today.setHours(0, 0, 0, 0);
 
-  return Math.max(diff, 0);
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  const end = endDate ? new Date(endDate) : start;
+  end.setHours(23, 59, 59, 999);
+
+  // Trip already finished
+  if (end < today) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  // Trip is happening today
+  if (start <= today && end >= today) {
+    return 0;
+  }
+
+  // Upcoming trip
+  return Math.ceil((start - today) / (1000 * 60 * 60 * 24));
 };
 
-const normalizeTrip = (trip) => ({
-  id: trip._id,
-  title: trip.title || "Untitled Trip",
-  location: getLocation(trip),
-  image: trip.image || fallbackImage,
-  startDate: formatDate(trip.startDate),
-  endDate: formatDate(trip.endDate),
-  duration: getDuration(trip.startDate, trip.endDate),
-  travelers: trip.travelers || 1,
-  budget:
-    typeof trip.budget === "number"
-      ? `$${trip.budget.toLocaleString()}`
-      : "$0",
-  progress: trip.progress || 0,
-  status: trip.status || "planned",
-  daysUntil: getDaysUntil(trip.startDate),
-  tasks: trip.tasks || [],
-  raw: trip,
-});
+const getTripStatus = (startDate, endDate, progress) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  // Trip is happening now
+  if (today >= start && today <= end) {
+    return "ongoing";
+  }
+
+  // Trip has ended
+  if (today > end) {
+    // If completed (100% progress), mark as completed
+    if (progress === 100) {
+      return "completed";
+    }
+    // Otherwise mark as missed (incomplete past trip)
+    return "missed";
+  }
+
+  // Trip hasn't started yet - still upcoming
+  return "upcoming";
+};
+
+const getDaysLeftDisplay = (startDate, endDate, progress, status) => {
+  if (status === "completed") {
+    return "Finished";
+  }
+
+  if (status === "missed") {
+    return "Missed";
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  const end = endDate ? new Date(endDate) : start;
+  end.setHours(23, 59, 59, 999);
+
+  // Happening today
+  if (start <= today && end >= today) {
+    return "0 days left";
+  }
+
+  // Calculate days until start
+  const daysUntil = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+  return `${daysUntil} days left`;
+};
+
+const getTripStatus_OLD = (startDate, endDate) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+
+  if (today < start) {
+    return "planned";
+  }
+
+  if (today >= start && today <= end) {
+    return "ongoing";
+  }
+
+  return "completed";
+};
+
+const normalizeTrip = (trip) => {
+  const progress = trip.progress || 0;
+  const status = getTripStatus(trip.startDate, trip.endDate, progress);
+  const daysLeftDisplay = getDaysLeftDisplay(trip.startDate, trip.endDate, progress, status);
+  
+  return {
+    ...trip,
+    id: trip._id,
+    title: trip.title || "Untitled Trip",
+    location: getLocation(trip),
+    image: trip.image || fallbackImage,
+    startDate: formatDate(trip.startDate),
+    endDate: formatDate(trip.endDate),
+    duration: getDuration(trip.startDate, trip.endDate),
+    travelers: trip.travelers || 1,
+    budget:
+      typeof trip.budget === "number"
+        ? `$${trip.budget.toLocaleString()}`
+        : "$0",
+    progress: progress,
+    status: status,
+    daysLeftDisplay: daysLeftDisplay,
+    daysUntil: getDaysUntil(trip.startDate, trip.endDate),
+    tasks: trip.tasks || [],
+  };
+};
 
 export function MyTrips() {
   const navigate = useNavigate();
-  const { openNewTripModal } = useOutletContext() || {};
 
   const [filter, setFilter] = useState("all");
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [taskStates, setTaskStates] = useState({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [tripToDelete, setTripToDelete] = useState(null);
 
   useEffect(() => {
     fetchTrips();
@@ -113,10 +215,17 @@ export function MyTrips() {
   const nearestTrip = useMemo(() => {
     if (trips.length === 0) return null;
 
-    return trips.reduce((nearest, trip) =>
+    const upcomingTrips = trips.filter(
+      (trip) => trip.daysUntil !== Number.MAX_SAFE_INTEGER
+    );
+
+    if (upcomingTrips.length === 0) return null;
+
+    return upcomingTrips.reduce((nearest, trip) =>
       trip.daysUntil < nearest.daysUntil ? trip : nearest
     );
   }, [trips]);
+
 
   useEffect(() => {
     if (!nearestTrip) return;
@@ -144,6 +253,27 @@ export function MyTrips() {
       console.error(error);
       alert("Failed to update task");
     }
+  };
+
+  const deleteTrip = async () => {
+    if (!tripToDelete) return;
+
+    try {
+      await API.delete(`/trips/${tripToDelete._id || tripToDelete.id}`);
+      setTrips((prev) => prev.filter((trip) => trip.id !== (tripToDelete._id || tripToDelete.id)));
+      setShowDeleteModal(false);
+      setTripToDelete(null);
+      alert("Trip deleted successfully!");
+      fetchTrips();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Failed to delete trip");
+    }
+  };
+
+  const handleDeleteClick = (trip) => {
+    setTripToDelete(trip);
+    setShowDeleteModal(true);
   };
 
   const filteredTrips =
@@ -185,11 +315,11 @@ export function MyTrips() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => openNewTripModal?.()}
+                onClick={() => navigate("/ai-planner")}
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold shadow-lg flex items-center justify-center gap-2"
               >
                 <Plus className="w-5 h-5" />
-                Create New Trip
+                Create AI Trip
               </button>
 
               <button
@@ -228,7 +358,7 @@ export function MyTrips() {
                   />
 
                   <span className="absolute top-4 left-4 bg-white/25 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold">
-                    Next Trip in {nearestTrip.daysUntil} days
+                      {nearestTrip.status}
                   </span>
                 </div>
 
@@ -316,7 +446,7 @@ export function MyTrips() {
         )}
 
         <div className="flex items-center gap-8 border-b border-slate-200 mb-8">
-          {["all", "planned", "ongoing", "completed"].map((item) => (
+          {["all", "ongoing", "completed", "missed"].map((item) => (
             <button
               key={item}
               onClick={() => setFilter(item)}
@@ -333,10 +463,41 @@ export function MyTrips() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTrips.map((trip) => (
-            <TripCard key={trip.id} trip={trip} />
+            <TripCard key={trip.id} trip={trip} onDelete={handleDeleteClick} />
           ))}
         </div>
       </div>
+
+      {showDeleteModal && tripToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full">
+            <h2 className="text-2xl font-black text-slate-900 mb-3">
+              Delete Trip?
+            </h2>
+            <p className="text-slate-600 mb-6">
+              Are you sure you want to delete <strong>{tripToDelete.title}</strong>? This action cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setTripToDelete(null);
+                }}
+                className="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteTrip}
+                className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -353,7 +514,9 @@ function InfoBox({ icon: Icon, label, value }) {
   );
 }
 
-function TripCard({ trip }) {
+function TripCard({ trip, onDelete }) {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition">
       <div className="relative">
@@ -364,10 +527,13 @@ function TripCard({ trip }) {
         />
 
         <span className="absolute top-4 left-4 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-          {trip.daysUntil} days left
+          {trip.daysLeftDisplay}
         </span>
 
-        <button className="absolute top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center">
+        <button 
+          onClick={() => onDelete(trip)}
+          className="absolute top-4 right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center hover:bg-slate-100 transition"
+        >
           <MoreVertical className="w-5 h-5 text-slate-500" />
         </button>
       </div>
@@ -385,7 +551,7 @@ function TripCard({ trip }) {
         <div className="grid grid-cols-2 gap-3 text-sm text-slate-600 mb-4">
           <p className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-purple-500" />
-            {trip.startDate} - {trip.endDate}
+            {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
           </p>
 
           <p className="flex items-center gap-2 justify-end">
@@ -421,7 +587,10 @@ function TripCard({ trip }) {
         </div>
 
         <div className="flex gap-2">
-          <button className="flex-1 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 py-3 text-white font-bold">
+          <button 
+            onClick={() => navigate(`/trip/${trip._id || trip.id}`)}
+            className="flex-1 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 py-3 text-white font-bold hover:shadow-lg transition"
+          >
             View Details
           </button>
 
