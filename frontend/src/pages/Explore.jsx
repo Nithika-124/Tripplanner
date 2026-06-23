@@ -382,7 +382,7 @@ function DestinationModal({ destination, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative">
-          <div className="grid grid-cols-2 gap-2 h-80">
+          <div className="grid grid-cols-2 gap-2 h-190">
             <img
               src={photo1}
               alt={destination.name}

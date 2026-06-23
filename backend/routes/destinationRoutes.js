@@ -1,6 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const Destination = require("../models/Destination");
+const Country = require("../models/Country");
 
 const router = express.Router();
 
@@ -41,24 +42,45 @@ async function getUnsplashImage(placeName, country, category) {
 }
 
 function getDestinationImage(placeName, category, country) {
-  const query = encodeURIComponent(`${placeName} ${country} travel`);
-  return `https://image.pollinations.ai/prompt/${query}?width=1200&height=800&nologo=true`;
+  return FALLBACK_IMAGES[category] || FALLBACK_IMAGES.all;
 }
 
-async function getCountryCenter(country) {
-  const res = await axios.get(
-    `https://restcountries.com/v3.1/name/${encodeURIComponent(country)}`
-  );
+function normalizeImageUrl(url) {
+  if (!url || typeof url !== "string") return null;
 
-  const data = res.data[0];
+  if (url.startsWith("//")) {
+    return `https:${url}`;
+  }
+
+  if (url.startsWith("http://")) {
+    return url.replace("http://", "https://");
+  }
+
+  if (!url.startsWith("https://")) {
+    return null;
+  }
+
+  if (url.includes("image.pollinations.ai")) {
+    return null;
+  }
+
+  return url;
+}
+
+function normalizeDestinationImages(destination) {
+  const item = destination.toObject ? destination.toObject() : destination;
+  const fallbackImage = getDestinationImage(item.name, item.category || "all", item.country);
+  const image = normalizeImageUrl(item.image) || fallbackImage;
+  const photos = Array.isArray(item.photos)
+    ? item.photos.map(normalizeImageUrl).filter(Boolean)
+    : [];
 
   return {
-    country: data.name.common,
-    lat: data.latlng[0],
-    lng: data.latlng[1],
+    ...item,
+    image,
+    photos: photos.length > 0 ? photos : [image],
   };
 }
-
 async function getPlaceDetails(xid) {
   try {
     const res = await axios.get(
@@ -78,22 +100,14 @@ async function getPlaceDetails(xid) {
 
 router.get("/countries", async (req, res) => {
   try {
-    const response = await axios.get(
-      "https://restcountries.com/v3.1/all?fields=name,flags"
-    );
-
-    const countries = response.data
-      .map((c) => ({
-        name: c.name.common,
-        flag: c.flags?.png,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const countries = await Country
+      .find()
+      .sort({ name: 1 });
 
     res.json(countries);
   } catch (error) {
     res.status(500).json({
-      message: "Failed to fetch countries",
-      error: error.message,
+      message: error.message,
     });
   }
 });
@@ -123,16 +137,22 @@ router.get("/live", async (req, res) => {
     const cached = await Destination.find(cacheFilter).limit(50);
 
     if (cached.length > 0) {
-      return res.json(cached);
+      return res.json(cached.map(normalizeDestinationImages));
     }
 
-    const center = await getCountryCenter(country);
+    const center = await Country.findOne({ 
+      name: country,
+    });
+
+    if (!center) {
+      return res.status(404).json({ message: "Country not found" });
+    }
 
     const placesRes = await axios.get(
       "https://api.opentripmap.com/0.1/en/places/radius",
       {
         params: {
-          radius: 100000,
+          radius: 500000,
           lon: center.lng,
           lat: center.lat,
           kinds: normalizeCategory(category),
@@ -152,21 +172,30 @@ router.get("/live", async (req, res) => {
       const details = await getPlaceDetails(place.xid);
 
       const imageUrl =
-        details?.preview?.source ||
-        await getUnsplashImage(place.name, center.country, category);
-
+        normalizeImageUrl(details?.preview?.source) ||
+        normalizeImageUrl(await getUnsplashImage(
+          place.name,
+          center.name,
+          category
+        )) ||
+        getDestinationImage(
+          place.name,
+          category,
+          center.name
+        );
+        
       const destination = await Destination.findOneAndUpdate(
         { xid: place.xid },
         {
           xid: place.xid,
           name: place.name,
-          country: center.country,
+          country: center.name,
           city: details?.address?.city || details?.address?.town || "",
           category,
           description:
             details?.wikipedia_extracts?.text ||
             details?.info?.descr ||
-            `${place.name} is a real travel destination in ${center.country}.`,
+            `${place.name} is a real travel destination in ${center.name}.`,
           image: imageUrl,
           rating: Number((Math.random() * (5 - 4.2) + 4.2).toFixed(1)),
           reviews: Math.floor(Math.random() * 8000) + 300,

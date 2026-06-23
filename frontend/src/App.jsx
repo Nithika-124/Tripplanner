@@ -7,6 +7,7 @@ import { Explore } from './pages/Explore';
 import { MyTrips } from './pages/MyTrips';
 import { Calendar } from './pages/Calendar';
 import { AITripPlanner } from './pages/AITripPlanner';
+import { TripDetails } from './pages/TripDetails';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -29,6 +30,7 @@ function App() {
           <Route path='/ai-planner' element={<AITripPlanner />} />  
           <Route path='/explore' element={<Explore />} />
           <Route path='/my-trips' element={<MyTrips />} />
+          <Route path='/trip/:id' element={<TripDetails />} />
           <Route path='/calendar' element={<Calendar />} />
         </Route>
       </Routes>

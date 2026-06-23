@@ -22,7 +22,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { AuthModal } from "./AuthModal";
-import { NewTripModal } from "./NewTripModal";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard", icon: Home, exact: true },
@@ -243,17 +242,6 @@ export function AppLayout() {
                 </AnimatePresence>
               </div>
 
-              {/* Plan New Trip CTA — desktop */}
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setIsNewTripModalOpen(true)}
-                className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-shadow"
-              >
-                <Plus className="w-4 h-4" />
-                New Trip
-              </motion.button>
-
               {/* Profile Dropdown */}
               <div ref={profileRef} className="relative">
                 <button
@@ -461,12 +449,6 @@ export function AppLayout() {
         onClose={() => setIsAuthModalOpen(false)}
         initialTab={authModalTab}
         onLoginSuccess={handleLoginSuccess}
-      />
-
-      {/* New Trip Modal */}
-      <NewTripModal
-        isOpen={isNewTripModalOpen}
-        onClose={() => setIsNewTripModalOpen(false)}
       />
     </div>
   );
