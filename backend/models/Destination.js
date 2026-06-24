@@ -1,43 +1,65 @@
 const mongoose = require("mongoose");
 
+/**
+ * Mongoose schema definition for the Destination model.
+ * Stores comprehensive information about a specific travel destination.
+ */
 const destinationSchema = new mongoose.Schema(
   {
-    xid: String,
+    xid: String, // External ID (e.g., from an external API like OpenTripMap)
 
-    name: String,
-    country: String,
-    city: String,
+    name: String, 
+    // Name of the destination
+    country: String, 
+    // Country where the destination is located
+    city: String, 
+    // City where the destination is located
 
-    category: String,
+    category: String, 
+    // Category of the destination (e.g., 'museum', 'nature')
 
-    description: String,
+    description: String, 
+    // Detailed description of the destination
 
-    image: String,
+    image: String, 
+    // Main image URL for the destination
 
-    photos: [String],
+    photos: [String], 
+    // Array of additional photo URLs
 
-    rating: Number,
+    rating: Number, 
+    // Average rating score
 
-    reviews: Number,
+    reviews: Number, 
+    // Number of user reviews
 
-    bestTimeToVisit: String,
+    bestTimeToVisit: String, 
+    // Recommended season or months to visit
 
-    estimatedBudget: String,
+    estimatedBudget: String, 
+    // Approximate cost level (e.g., '$$$', 'Moderate')
 
-    activities: [String],
+    activities: [String], 
+    // List of popular activities to do
 
-    highlights: [String],
+    highlights: [String], 
+    // Key highlights or attractions
 
-    travelTips: [String],
+    travelTips: [String], 
+    // Useful tips for travelers
 
     location: {
-      lat: Number,
-      lng: Number,
+      lat: Number, // Latitude coordinate
+      lng: Number, // Longitude coordinate
     },
   },
-  { timestamps: true }
+  { timestamps: true } // Automatically manages createdAt and updatedAt fields
 );
 
+/**
+ * Destination model for storing and retrieving travel destinations.
+ * @module models/Destination
+ */
 module.exports = mongoose.model(
   "Destination",
   destinationSchema

@@ -31,16 +31,21 @@ const interestOptions = [
 
 export function AITripPlanner() {
   const navigate = useNavigate();
-
+   // User selected interests
   const [interests, setInterests] = useState(["Culture", "Food", "History"]);
+  // Loading states
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Generated trip plans
   const [plans, setPlans] = useState([]);
+  // Currently selected trip for modal view
   const [selectedPlan, setSelectedPlan] = useState(null);
+  // Show / hide search filters
   const [showFilters, setShowFilters] = useState(true);
+  // Authentication related states
   const [pendingTripToSave, setPendingTripToSave] = useState(null);
   const [isSaveAuthOpen, setIsSaveAuthOpen] = useState(false);
-
+  // Main trip planning form
   const [form, setForm] = useState({
     startLocation: "Colombo, Sri Lanka",
     destinationCountry: "Japan",
@@ -51,11 +56,11 @@ export function AITripPlanner() {
     travelStyle: "mid-range",
     notes: "",
   });
-
+  // Update any form field dynamically
   const updateForm = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
-
+  // Add or remove an interest from selection
   const toggleInterest = (interest) => {
     setInterests((prev) =>
       prev.includes(interest)
@@ -63,8 +68,9 @@ export function AITripPlanner() {
         : [...prev, interest]
     );
   };
-
+  // Generate AI trip itineraries from backend
   const generateAITrips = async () => {
+    // Validate user inputs before sending request
     if (!form.destinationCountry.trim()) return alert("Please enter destination country");
     if (!form.startDate) return alert("Please select a travel start date");
     if (Number(form.days) < 1) return alert("Days must be at least 1");
@@ -72,10 +78,11 @@ export function AITripPlanner() {
     if (Number(form.travelers) < 1) return alert("Travelers must be at least 1");
 
     try {
+      // Show loading state and clear previous results
       setLoading(true);
       setPlans([]);
       setSelectedPlan(null);
-
+      // Send trip preferences to AI service
       const res = await API.post("/ai-trip/generate", {
         ...form,
         budget: Number(form.budget),
@@ -100,10 +107,10 @@ export function AITripPlanner() {
       setLoading(false);
     }
   };
-
+  // Save selected trip to database
   const saveTrip = async (plan, options = {}) => {
     if (!plan) return;
-
+    // Check user authentication before saving
     if (!options.skipAuth && !localStorage.getItem("token")) {
       setPendingTripToSave(plan);
       setIsSaveAuthOpen(true);
@@ -117,7 +124,7 @@ export function AITripPlanner() {
       const startDate = new Date(form.startDate);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + Number(form.days) - 1);
-
+      // Save trip into database
       await API.post("/trips", {
         title: plan.title,
         summary: plan.summary,
@@ -170,7 +177,7 @@ export function AITripPlanner() {
       setSaving(false);
     }
   };
-
+  // Handle successful login from Auth Modal
   const handleSaveAuthSuccess = () => {
     const tripToSave = pendingTripToSave;
 
@@ -533,7 +540,7 @@ function InputShell({ icon, children }) {
     </div>
   );
 }
-
+// Extract destinations from daily itinerary activities
 function getDestinations(plan, fallbackCountry) {
   const activityDestinations =
     plan.dailyPlan?.flatMap((day) =>

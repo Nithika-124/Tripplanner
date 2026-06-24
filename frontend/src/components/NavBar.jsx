@@ -152,12 +152,12 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* ── Top Navigation Bar ── */}
+      {/* Top Navigation Bar */}
       <header className="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
 
-            {/* ── Logo ── */}
+            {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 shrink-0">
               <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-xl shadow-md">
                 <Plane className="w-5 h-5 text-white" />
@@ -167,7 +167,7 @@ export function AppLayout() {
               </span>
             </Link>
 
-            {/* ── Desktop Nav Links ── */}
+            {/* Desktop Nav Links */}
             <nav className="hidden md:flex items-center gap-1 ml-8">
               {navLinks.map(({ to, label, icon: Icon, exact }) => {
                 const active = isActive(to, exact);
@@ -194,7 +194,7 @@ export function AppLayout() {
               })}
             </nav>
 
-            {/* ── Right Controls ── */}
+            {/* Right Controls */}
             <div className="flex items-center gap-2 ml-auto">
               {isLoggedIn ? (
                 <>
@@ -384,7 +384,7 @@ export function AppLayout() {
           </div>
         </div>
 
-        {/* ── Mobile Menu ── */}
+        {/* Mobile Menu */}
         <AnimatePresence>
           {mobileOpen && (
             <motion.div
@@ -453,7 +453,7 @@ export function AppLayout() {
         </AnimatePresence>
       </header>
 
-      {/* ── Main Content ── */}
+      {/* Main Content */}
       <main className="min-h-[calc(100vh-64px)]">
         <Outlet context={{ openNewTripModal: () => setIsNewTripModalOpen(true) }} />
       </main>

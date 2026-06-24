@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { fallbackTravelImage, getTravelImage, isBadImageUrl } from "../utils/travelImages";
 
+// Default fallback image when no valid image exists
 const fallbackImage = fallbackTravelImage;
 
 const tagStyles = [
@@ -32,6 +33,7 @@ const budgetColors = ["#2563eb", "#e95092", "#f59e0b", "#14b8a6", "#7c6ee6"];
 export function AITripDetailsModal({ trip, onClose, onSave, saving }) {
   if (!trip) return null;
 
+  // Determine the best available cover image
   const image =
     !isBadImageUrl(trip.image)
       ? trip.image
@@ -44,10 +46,12 @@ export function AITripDetailsModal({ trip, onClose, onSave, saving }) {
             1400,
             720
           );
+  // Extract trip data
   const cities = getCities(trip);
   const tags = getTags(trip);
   const hotels = trip.hotels || [];
   const totalBudget = Number(trip.totalBudget || 0);
+  // Generate budget breakdown for chart display
   const budgetItems = getBudgetItems(trip.budgetBreakdown, totalBudget);
 
   return (
@@ -152,7 +156,7 @@ export function AITripDetailsModal({ trip, onClose, onSave, saving }) {
     </div>
   );
 }
-
+/** Displays trip banner image and main trip information. */
 function Hero({ trip, image, cities, tags, hotelCount, onClose }) {
   return (
     <div className="relative min-h-[360px] overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
@@ -232,7 +236,10 @@ function HeroFact({ icon: Icon, text }) {
     </div>
   );
 }
-
+/**
+ * Statistics card.
+ * Shows key trip metrics such as budget, duration, hotels, and transport.
+ */
 function Metric({ icon: Icon, label, value, subvalue, color, bg }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -249,7 +256,9 @@ function Metric({ icon: Icon, label, value, subvalue, color, bg }) {
     </div>
   );
 }
-
+/**
+ * Shows activities day by day.
+ */
 function DailyItinerary({ dailyPlan }) {
   return (
     <Panel title="Daily Itinerary">
@@ -316,7 +325,9 @@ function DailyItinerary({ dailyPlan }) {
     </Panel>
   );
 }
-
+/**
+ * Displays donut chart and spending categories.
+ */
 function BudgetBreakdown({ budgetItems, totalBudget }) {
   return (
     <Panel title="Budget Breakdown">
@@ -345,7 +356,9 @@ function BudgetBreakdown({ budgetItems, totalBudget }) {
     </Panel>
   );
 }
-
+/**
+ * Hotel recommendations section.
+ */
 function HotelHighlights({ hotels }) {
   return (
     <Panel
@@ -387,7 +400,9 @@ function HotelHighlights({ hotels }) {
     </Panel>
   );
 }
-
+/**
+ * Restaurant recommendations section.
+ */
 function RestaurantPanel({ restaurants }) {
   const normalized = normalizeList(restaurants);
 
@@ -540,7 +555,7 @@ function Panel({ title, action, compact = false, tone, children }) {
     </section>
   );
 }
-
+// Extract unique cities from trip data
 function getCities(trip) {
   const cities = trip.cities?.length
     ? trip.cities
@@ -548,11 +563,11 @@ function getCities(trip) {
 
   return [...new Set(cities)].filter(Boolean);
 }
-
+// Generate trip tags if none are provided
 function getTags(trip) {
   return trip.tags?.length ? trip.tags : ["Cultural", "Adventure", "Scenic", "Food"];
 }
-
+// Prepare budget data for chart rendering
 function getBudgetItems(budgetBreakdown = {}, totalBudget) {
   const entries = Object.entries(budgetBreakdown || {}).filter(([, value]) => Number(value) > 0);
   const usableEntries = entries.length
@@ -574,7 +589,7 @@ function getBudgetItems(budgetBreakdown = {}, totalBudget) {
     percent: Math.round((Number(value || 0) / total) * 100),
   }));
 }
-
+// Generate CSS conic-gradient for donut chart
 function donutStyle(items) {
   let cursor = 0;
   const stops = items.map((item, index) => {
@@ -586,7 +601,7 @@ function donutStyle(items) {
 
   return { background: `conic-gradient(${stops.join(", ")})` };
 }
-
+// Normalize object/string/array data into array format
 function normalizeList(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -643,7 +658,7 @@ function splitContact(item) {
   if (parts.length < 2) return ["Contact", text];
   return [parts[0], parts.slice(1).join(":").trim()];
 }
-
+// Convert camelCase or snake_case text to Title Case
 function titleCase(value) {
   return String(value)
     .replace(/([A-Z])/g, " $1")
@@ -651,7 +666,7 @@ function titleCase(value) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
     .trim();
 }
-
+// Format numbers with commas
 function formatNumber(value) {
   return Number(value || 0).toLocaleString("en-US");
 }

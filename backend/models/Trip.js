@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 
+/**
+ * Sub-schema for individual tasks within a trip.
+ */
 const taskSchema = new mongoose.Schema({
   title: String,
   category: String,
@@ -9,6 +12,9 @@ const taskSchema = new mongoose.Schema({
   },
 });
 
+/**
+ * Sub-schema representing a destination stop in a trip.
+ */
 const destinationSchema = new mongoose.Schema({
   name: String,
   country: String,
@@ -31,6 +37,9 @@ const destinationSchema = new mongoose.Schema({
   },
 });
 
+/**
+ * Sub-schema for the transit routes between destinations.
+ */
 const routeSchema = new mongoose.Schema({
   from: String,
   to: String,
@@ -39,6 +48,10 @@ const routeSchema = new mongoose.Schema({
   durationMinutes: Number,
 });
 
+/**
+ * Main Mongoose schema for the Trip model.
+ * Handles the complete structure of a user's trip, including manual and AI-generated data.
+ */
 const tripSchema = new mongoose.Schema(
   {
     userId: String,
@@ -57,9 +70,11 @@ const tripSchema = new mongoose.Schema(
       default: "driving-car",
     },
 
-    hotelPreference: String,
+    hotelPreference: String, 
+    // Preferred style/budget for accommodations
 
-    route: [routeSchema],
+    route: [routeSchema], 
+    // Transit routes between multiple destinations
 
     totalDistanceKm: Number,
     totalDurationMinutes: Number,
@@ -84,12 +99,15 @@ const tripSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      default: "planned",
+      default: "planned", 
+      // Status can be 'planned', 'ongoing', 'completed'
     },
 
-    tasks: [taskSchema],
+    tasks: [taskSchema], 
+    // Checklist or tasks related to the trip
 
-    image: String,
+    image: String, 
+    // Banner image for the trip
 
     // AI Trip specific fields
     aiGenerated: {
@@ -118,22 +136,22 @@ const tripSchema = new mongoose.Schema(
       }],
     }],
 
-    recommendations: [String],
-
-    hotels: [mongoose.Schema.Types.Mixed],
-
-    restaurants: [mongoose.Schema.Types.Mixed],
-
-    packing: [String],
-
-    weather: mongoose.Schema.Types.Mixed,
-
-    emergencyNumbers: [mongoose.Schema.Types.Mixed],
-
-    interests: [String],
-
-    notes: String,
-
+    recommendations: [String], 
+    // AI-generated recommendations
+    hotels: [mongoose.Schema.Types.Mixed], 
+    // Unstructured hotel data
+    restaurants: [mongoose.Schema.Types.Mixed], 
+    // Unstructured restaurant data
+    packing: [String], 
+    // Packing list items
+    weather: mongoose.Schema.Types.Mixed, 
+    // General weather info
+    emergencyNumbers: [mongoose.Schema.Types.Mixed], 
+    // Local emergency contacts
+    interests: [String], 
+    // User's travel interests
+    notes: String, 
+    // Personal notes about the trip
     travelStyle: String,
 
     startLocation: String,
@@ -143,4 +161,8 @@ const tripSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/**
+ * Trip model representing a user's planned or generated trip.
+ * @module models/Trip
+ */
 module.exports = mongoose.model("Trip", tripSchema);
