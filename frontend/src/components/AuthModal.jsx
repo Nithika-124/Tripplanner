@@ -13,6 +13,18 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "login
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const completeAuth = (token, user, message) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    window.dispatchEvent(new CustomEvent("auth:changed", { detail: { user } }));
+
+    setSuccess(message);
+    setTimeout(() => {
+      onLoginSuccess?.(user);
+      onClose();
+    }, 700);
+  };
+
   // Sync activeTab with initialTab when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -59,27 +71,13 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "login
         const response = await API.post("/auth/login", { email, password });
         const { token, user } = response.data;
 
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-
-        setSuccess("Successfully logged in! Redirecting...");
-        setTimeout(() => {
-          onLoginSuccess(user);
-          onClose();
-        }, 1500);
+        completeAuth(token, user, "Successfully logged in!");
       } else {
         // Sign Up Flow
-        await API.post("/auth/register", { fullName, email, password });
-        setSuccess("Account created successfully! Switching to Sign In...");
+        const response = await API.post("/auth/register", { fullName, email, password });
+        const { token, user } = response.data;
 
-        // Auto-switch to Sign In tab after registration
-        setTimeout(() => {
-          setActiveTab("login");
-          setPassword("");
-          setError("");
-          setSuccess("");
-          setLoading(false);
-        }, 2000);
+        completeAuth(token, user, "Account created successfully!");
       }
     } catch (err) {
       console.error(err);

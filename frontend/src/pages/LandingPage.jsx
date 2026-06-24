@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { 
   Globe, Users, MapPin, Star, Award, Search, Calendar, Plane, 
   Wallet, Shield, Compass, ChevronDown, Quote, ArrowRight, Sparkles,
-  Mail, Phone, Send , Clock
+  Mail, Phone, Send , Clock,Bookmark, CloudSun, Route
 } from "lucide-react";
 import { useState } from "react";
 import { Header } from "../components/Header";
@@ -54,7 +54,7 @@ export function Hero() {
         <img
           src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&h=1080&fit=crop&auto=format"
           alt=""
-          className="w-full h-full object-cover opacity-[0.12]"
+          className="w-full h-full object-cover opacity-[0.22]"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#060E1E]/60 via-transparent to-[#060E1E]" />
       </div>
@@ -564,13 +564,43 @@ function AIPlannerPreview() {
 
 function Features() {
   const features = [
-    { icon: MapPin, title: "Destination Discovery", description: "Explore thousands of destinations with detailed guides, photos, and insider tips from travelers worldwide." },
-    { icon: Calendar, title: "Smart Itinerary Builder", description: "Create day-by-day plans with AI-powered suggestions based on your interests, budget, and travel style." },
-    { icon: Users, title: "Collaborative Planning", description: "Plan together with friends and family. Share ideas, vote on activities, and coordinate schedules seamlessly." },
-    { icon: Compass, title: "Personalized Recommendations", description: "Get tailored suggestions for attractions, restaurants, and experiences that match your preferences." },
-    { icon: Wallet, title: "Budget Management", description: "Track expenses, split costs with travel companions, and stay within your budget with real-time insights." },
-    { icon: Shield, title: "Travel Insurance & Safety", description: "Access travel alerts, safety tips, and insurance options to ensure a worry-free journey." },
-  ];
+    {
+      icon: Sparkles,
+      title: "AI-Powered Itinerary Generator",
+      description:
+        "Create complete travel plans in seconds using advanced AI recommendations tailored to your preferences.",
+    },
+    {
+      icon: Globe,
+      title: "Explore Countries & Destinations",
+      description:
+        "Browse destinations, attractions, travel costs, and essential information before choosing where to travel.",
+    },
+    {
+      icon: Route,
+      title: "Multi-Route Comparison",
+      description:
+        "Generate and compare multiple itinerary options to find the most suitable trip plan.",
+    },
+    {
+      icon: Calendar,
+      title: "Detailed Daily Planning",
+      description:
+        "Get day-by-day schedules including activities, transportation, hotel suggestions, and estimated expenses.",
+    },
+    {
+      icon: Bookmark,
+      title: "Trip Dashboard",
+      description:
+        "Save trips, track progress, manage bookings, and access your travel plans from one centralized dashboard.",
+    },
+    {
+      icon: CloudSun,
+      title: "Travel Insights",
+      description:
+        "Receive weather forecasts, packing recommendations, emergency contacts, and useful travel information.",
+    },
+];
 
   return (
     <section id="features" className="py-24 px-4 relative">
@@ -615,30 +645,30 @@ function HowItWorks() {
   const steps = [
     {
       icon: Search,
-      title: "Discover Destinations",
+      title: "Explore Destinations",
       description:
-        "Explore countries, categories, ratings, and travel places to find the perfect destination for your trip.",
+        "Browse countries, cities, attractions, travel categories, and estimated costs to discover your next adventure.",
       step: "01",
     },
     {
       icon: Sparkles,
-      title: "Create or Generate Your Trip",
+      title: "Generate or Create a Trip",
       description:
-        "Build your own trip manually or let AI create a smart plan using your budget, dates, interests, and travel style.",
+        "Use AI to generate personalized itineraries or build your own trip based on your budget, travel dates, interests, and preferences.",
       step: "02",
     },
     {
-      icon: Calendar,
-      title: "Customize Your Itinerary",
+      icon: Bookmark,
+      title: "Save & Manage Trips",
       description:
-        "Edit daily activities, manage bookings, add reminders, organize transport, and track your trip progress.",
+        "Save your favorite itineraries, organize bookings, compare plans, and manage everything from your personal trip dashboard.",
       step: "03",
     },
     {
       icon: Plane,
-      title: "Travel With Confidence",
+      title: "Travel Smarter",
       description:
-        "Access your complete trip dashboard, budget details, schedule, and travel updates anytime, anywhere.",
+        "Access daily schedules, hotel details, transport plans, weather updates, budget tracking, and travel recommendations throughout your journey.",
       step: "04",
     },
   ];
@@ -751,10 +781,7 @@ function FAQ() {
       answer: "TripPlanner is a comprehensive travel planning platform that helps you organize every aspect of your trip. Simply choose your destination, use our AI-powered itinerary builder to create a personalized schedule, invite travel companions to collaborate, and access your complete travel guide on any device." 
     },
     { question: "Is TripPlanner free to use?",
-      answer: "We offer a free plan with essential features including basic itinerary building and destination guides. Premium plans unlock advanced features like AI recommendations, unlimited collaborators, offline access, and priority support."
-    },
-    { question: "Can I plan trips with friends and family?",
-      answer: "Absolutely! Collaboration is one of our core features. You can invite unlimited travel companions on premium plans, share itineraries, vote on activities, and make group decisions seamlessly."
+      answer: "We offer a free plan with essential features including basic itinerary building and destination guides. Premium plans unlock advanced features like unlimited collaborators, offline access, and priority support."
     },
     { question: "Does TripPlanner work offline?",
       answer: "Yes! Premium users can download their complete itineraries, maps, and destination guides for offline access. This ensures you have all your travel information available even without internet connectivity."

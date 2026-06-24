@@ -15,6 +15,8 @@ import {
 import API from "../../api/api";
 import { AITripCard } from "../components/AITripCard";
 import { AITripDetailsModal } from "../components/AITripDetailsModal";
+import { AuthModal } from "../components/AuthModal";
+import { getTravelImage, isBadImageUrl } from "../utils/travelImages";
 
 const interestOptions = [
   "Culture",
@@ -36,6 +38,8 @@ export function AITripPlanner() {
   const [plans, setPlans] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showFilters, setShowFilters] = useState(true);
+  const [pendingTripToSave, setPendingTripToSave] = useState(null);
+  const [isSaveAuthOpen, setIsSaveAuthOpen] = useState(false);
 
   const [form, setForm] = useState({
     startLocation: "Colombo, Sri Lanka",
@@ -97,8 +101,14 @@ export function AITripPlanner() {
     }
   };
 
-  const saveTrip = async (plan) => {
+  const saveTrip = async (plan, options = {}) => {
     if (!plan) return;
+
+    if (!options.skipAuth && !localStorage.getItem("token")) {
+      setPendingTripToSave(plan);
+      setIsSaveAuthOpen(true);
+      return;
+    }
 
     try {
       setSaving(true);
@@ -143,13 +153,32 @@ export function AITripPlanner() {
         ],
       });
 
-      alert("Trip created successfully!");
-      navigate("/my-trips");
+      navigate("/my-trips", {
+        state: { message: "Trip saved successfully" },
+      });
     } catch (error) {
       console.log(error);
+
+      if (error.response?.status === 401) {
+        setPendingTripToSave(plan);
+        setIsSaveAuthOpen(true);
+        return;
+      }
+
       alert(error.response?.data?.message || "Failed to save trip");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveAuthSuccess = () => {
+    const tripToSave = pendingTripToSave;
+
+    setPendingTripToSave(null);
+    setIsSaveAuthOpen(false);
+
+    if (tripToSave) {
+      saveTrip(tripToSave, { skipAuth: true });
     }
   };
 
@@ -453,6 +482,16 @@ export function AITripPlanner() {
         saving={saving}
       />
 
+      <AuthModal
+        isOpen={isSaveAuthOpen}
+        onClose={() => {
+          setIsSaveAuthOpen(false);
+          setPendingTripToSave(null);
+        }}
+        initialTab="login"
+        onLoginSuccess={handleSaveAuthSuccess}
+      />
+
       <style>{`
         .input-box {
           min-height: 44px;
@@ -517,7 +556,14 @@ function getDestinations(plan, fallbackCountry) {
 }
 
 function getPlanImage(plan) {
-  if (plan.image || plan.coverImage) return plan.image || plan.coverImage;
-  if (!plan.coverImageQuery) return undefined;
-  return `https://source.unsplash.com/900x600/?${encodeURIComponent(plan.coverImageQuery)}`;
+  if (!isBadImageUrl(plan.image)) return plan.image;
+  if (!isBadImageUrl(plan.coverImage)) return plan.coverImage;
+
+  return getTravelImage(
+    [plan.coverImageQuery, plan.title, plan.destinationCountry, plan.cities?.join(" ")]
+      .filter(Boolean)
+      .join(" "),
+    900,
+    600
+  );
 }

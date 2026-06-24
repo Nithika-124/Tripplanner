@@ -15,9 +15,9 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { fallbackTravelImage, getTravelImage, isBadImageUrl } from "../utils/travelImages";
 
-const fallbackImage =
-  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&h=720&fit=crop&auto=format";
+const fallbackImage = fallbackTravelImage;
 
 const tagStyles = [
   "bg-violet-500 text-white",
@@ -32,7 +32,18 @@ const budgetColors = ["#2563eb", "#e95092", "#f59e0b", "#14b8a6", "#7c6ee6"];
 export function AITripDetailsModal({ trip, onClose, onSave, saving }) {
   if (!trip) return null;
 
-  const image = trip.image || trip.coverImage || getUnsplashImage(trip.coverImageQuery);
+  const image =
+    !isBadImageUrl(trip.image)
+      ? trip.image
+      : !isBadImageUrl(trip.coverImage)
+        ? trip.coverImage
+        : getTravelImage(
+            [trip.coverImageQuery, trip.title, trip.destinationCountry, trip.cities?.join(" ")]
+              .filter(Boolean)
+              .join(" "),
+            1400,
+            720
+          );
   const cities = getCities(trip);
   const tags = getTags(trip);
   const hotels = trip.hotels || [];
@@ -287,7 +298,7 @@ function DailyItinerary({ dailyPlan }) {
                   </div>
 
                   <img
-                    src={getUnsplashImage(`${day.city || day.route || day.title} travel`)}
+                    src={getTravelImage(`${day.city || day.route || day.title} travel`, 420, 280)}
                     alt={day.title}
                     className="h-28 w-full rounded-lg object-cover sm:h-full"
                   />
@@ -346,7 +357,7 @@ function HotelHighlights({ hotels }) {
         {hotels.slice(0, 4).map((hotel, index) => (
           <div key={`${hotel.name}-${index}`} className="grid grid-cols-[88px_1fr_auto] gap-4 bg-white p-3">
             <img
-              src={getUnsplashImage(`${hotel.name || hotel.area} hotel room`)}
+              src={getTravelImage(`${hotel.name || hotel.area} hotel room`, 240, 180)}
               alt={hotel.name}
               className="h-16 w-20 rounded-md object-cover"
             />
@@ -388,7 +399,7 @@ function RestaurantPanel({ restaurants }) {
           return (
             <div key={`${text}-${index}`} className="grid grid-cols-[54px_1fr_auto] gap-3">
               <img
-                src={getUnsplashImage(`${text} food`)}
+                src={getTravelImage(`${text} food`, 160, 160)}
                 alt=""
                 className="h-12 w-12 rounded-md object-cover"
               />
@@ -645,7 +656,3 @@ function formatNumber(value) {
   return Number(value || 0).toLocaleString("en-US");
 }
 
-function getUnsplashImage(query) {
-  if (!query) return fallbackImage;
-  return `https://source.unsplash.com/1200x700/?${encodeURIComponent(query)}`;
-}

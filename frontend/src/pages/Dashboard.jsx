@@ -439,6 +439,52 @@ export function Dashboard() {
             </div>
           </div>
         )}
+        <div className="bg-white rounded-3xl shadow-xl p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-slate-900">
+              Popular Destinations
+            </h3>
+            <button
+              onClick={() => navigate("/explore")}
+              className="text-blue-600 font-semibold text-sm hover:text-blue-700"
+            >
+              View All
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              ["Paris, France", "4.9", "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500"],
+              ["Bali, Indonesia", "4.8", "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=500"],
+              ["Tokyo, Japan", "4.9", "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=500"],
+              ["Santorini, Greece", "5.0", "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=500"],
+            ].map(([name, rating, image]) => (
+              <div
+                key={name}
+                className="group relative h-72 overflow-hidden rounded-3xl cursor-pointer"
+              >
+                <img
+                  src={image}
+                  alt={name}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold">
+                  ⭐ {rating}
+                </div>
+
+                <div className="absolute bottom-4 left-4 text-white">
+                  <h4 className="font-bold text-lg">{name}</h4>
+                  <p className="text-sm text-white/80">
+                    Explore amazing experiences
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

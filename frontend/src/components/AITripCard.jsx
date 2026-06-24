@@ -7,9 +7,9 @@ import {
   Wallet,
   Route,
 } from "lucide-react";
+import { fallbackTravelImage, getTravelImage, isBadImageUrl } from "../utils/travelImages";
 
-const fallbackImage =
-  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=900&h=600&fit=crop&auto=format";
+const fallbackImage = fallbackTravelImage;
 
 export function AITripCard({
   trip,
@@ -18,9 +18,17 @@ export function AITripCard({
   saved = false,
 }) {
   const image =
-    trip.image ||
-    trip.coverImage ||
-    getUnsplashImage(trip.coverImageQuery);
+    !isBadImageUrl(trip.image)
+      ? trip.image
+      : !isBadImageUrl(trip.coverImage)
+        ? trip.coverImage
+        : getTravelImage(
+            [trip.coverImageQuery, trip.title, trip.destinationCountry, trip.cities?.join(" ")]
+              .filter(Boolean)
+              .join(" "),
+            900,
+            600
+          );
 
   const cities = trip.cities?.length
     ? trip.cities
@@ -291,10 +299,3 @@ export function AITripCard({
   );
 }
 
-function getUnsplashImage(query) {
-  if (!query) return fallbackImage;
-
-  return `https://images.unsplash.com/featured/900x600/?${encodeURIComponent(
-    query
-  )}`;
-}
