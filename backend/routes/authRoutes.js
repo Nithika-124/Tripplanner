@@ -6,10 +6,16 @@ const User = require("../models/User");
 
 const router = express.Router();
 
+/**
+ * @route   POST /api/auth/register
+ * @desc    Register a new user
+ * @access  Public
+ */
 router.post("/register", async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
 
+    // Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -18,20 +24,24 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create new user in the database
     const user = await User.create({
       fullName,
       email,
       password: hashedPassword
     });
 
+    // Generate JWT token
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
+    // Send successful response with token
     res.status(201).json({
       message: "Registered successfully",
       token,
@@ -43,16 +53,23 @@ router.post("/register", async (req, res) => {
     });
 
   } catch (error) {
+    console.error("Registration Error:", error);
     res.status(500).json({
       message: "Register failed"
     });
   }
 });
 
+/**
+ * @route   POST /api/auth/login
+ * @desc    Authenticate user & get token
+ * @access  Public
+ */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Find user by email
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -61,6 +78,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    // Verify password matches
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -69,12 +87,14 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    // Generate JWT token
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
+    // Send successful response with token
     res.json({
       token,
       user: {
@@ -85,6 +105,7 @@ router.post("/login", async (req, res) => {
     });
 
   } catch (error) {
+    console.error("Login Error:", error);
     res.status(500).json({
       message: "Login failed"
     });
