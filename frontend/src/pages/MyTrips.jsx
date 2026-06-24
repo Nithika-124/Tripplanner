@@ -15,7 +15,7 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import API from "../../api/api";
 
 const fallbackImage =
@@ -187,6 +187,7 @@ const normalizeTrip = (trip) => {
 
 export function MyTrips() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [filter, setFilter] = useState("all");
   const [trips, setTrips] = useState([]);
@@ -194,10 +195,22 @@ export function MyTrips() {
   const [taskStates, setTaskStates] = useState({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [tripToDelete, setTripToDelete] = useState(null);
+  const [notice, setNotice] = useState(location.state?.message || "");
 
   useEffect(() => {
     fetchTrips();
   }, []);
+
+  useEffect(() => {
+    const message = location.state?.message;
+    if (!message) return;
+
+    setNotice(message);
+    navigate(location.pathname, { replace: true, state: {} });
+
+    const timer = setTimeout(() => setNotice(""), 5000);
+    return () => clearTimeout(timer);
+  }, [location.pathname, location.state, navigate]);
 
   const fetchTrips = async () => {
     try {
@@ -300,6 +313,8 @@ export function MyTrips() {
     return (
       <div className="min-h-[calc(100vh-73px)] bg-slate-50 px-4 py-8">
         <div className="max-w-7xl mx-auto">
+          <SuccessNotice message={notice} />
+
           <section className="bg-white rounded-3xl shadow-xl border border-slate-200 p-10 text-center">
             <div className="w-28 h-28 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-6">
               <span className="text-6xl">🧳</span>
@@ -339,6 +354,8 @@ export function MyTrips() {
   return (
     <div className="min-h-[calc(100vh-73px)] bg-slate-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
+        <SuccessNotice message={notice} />
+
         {nearestTrip && (
           <section className="bg-gradient-to-br from-cyan-500 to-blue-800 rounded-3xl overflow-hidden shadow-xl mb-8 p-8">
             <div className="text-center text-white mb-8">
@@ -498,6 +515,17 @@ export function MyTrips() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SuccessNotice({ message }) {
+  if (!message) return null;
+
+  return (
+    <div className="mb-6 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-700 shadow-sm">
+      <CheckCircle2 className="h-5 w-5 shrink-0" />
+      <p className="font-bold">{message}</p>
     </div>
   );
 }

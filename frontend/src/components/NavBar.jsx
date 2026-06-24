@@ -38,7 +38,7 @@ const notifications = [
     title: "Paris trip confirmed!",
     desc: "Your booking for Jun 15 is confirmed.",
     time: "2h ago",
-    unread: true,
+    unread: false,
   },
   {
     id: 2,
@@ -46,7 +46,7 @@ const notifications = [
     title: "New destination added",
     desc: "Santorini added to your bucket list.",
     time: "1d ago",
-    unread: true,
+    unread: false,
   },
   {
     id: 3,
@@ -76,18 +76,36 @@ export function AppLayout() {
   const notifRef = useRef(null);
   const searchRef = useRef(null);
 
-  // Initialize session state from localStorage
-  useEffect(() => {
+  const syncSessionFromStorage = () => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
-    if (token && storedUser) {
-      setIsLoggedIn(true);
-      try {
-        setCurrentUser(JSON.parse(storedUser));
-      } catch (err) {
-        console.error("Failed to parse stored user", err);
-      }
+
+    if (!token || !storedUser) {
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      return;
     }
+
+    setIsLoggedIn(true);
+    try {
+      setCurrentUser(JSON.parse(storedUser));
+    } catch (err) {
+      console.error("Failed to parse stored user", err);
+      setCurrentUser(null);
+    }
+  };
+
+  // Initialize session state from localStorage and react to auth changes
+  useEffect(() => {
+    syncSessionFromStorage();
+
+    window.addEventListener("auth:changed", syncSessionFromStorage);
+    window.addEventListener("storage", syncSessionFromStorage);
+
+    return () => {
+      window.removeEventListener("auth:changed", syncSessionFromStorage);
+      window.removeEventListener("storage", syncSessionFromStorage);
+    };
   }, []);
 
   const handleLoginSuccess = (user) => {
@@ -98,6 +116,7 @@ export function AppLayout() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    window.dispatchEvent(new CustomEvent("auth:changed"));
     setIsLoggedIn(false);
     setCurrentUser(null);
     navigate("/");
@@ -295,10 +314,7 @@ export function AppLayout() {
                           </div>
                         </div>
                         <div className="mt-2 flex items-center gap-1">
-                          <span className="px-2 py-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[10px] font-bold rounded-full">
-                            PRO
-                          </span>
-                          <span className="text-xs text-gray-500">16 trips · 12 countries</span>
+                          <span className="text-xs text-gray-500"> {currentUser?.trips || 0} trips · {currentUser?.countries || 1} countries</span>
                         </div>
                       </div>
 
@@ -307,7 +323,6 @@ export function AppLayout() {
                         {[
                           { icon: User, label: "My Profile" },
                           { icon: Map, label: "My Trips" },
-                          { icon: Bookmark, label: "Saved Places" },
                           { icon: Settings, label: "Settings" },
                           { icon: HelpCircle, label: "Help & Support" },
                         ].map(({ icon: Icon, label }) => (
