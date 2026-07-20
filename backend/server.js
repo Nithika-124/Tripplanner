@@ -12,6 +12,7 @@ const authRoutes = require("./routes/authRoutes");
 const tripRoutes = require("./routes/tripRoutes");
 const destinationRoutes = require("./routes/destinationRoutes");
 const aiTripRoutes = require("./routes/aiTripRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 
 // Initialize Express application
 const app = express();
@@ -27,7 +28,8 @@ app.use(express.json()); // Parse incoming JSON request bodies
 app.use("/api/auth", authRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/destinations", destinationRoutes);
-app.use("/api/ai-trip", aiTripRoutes); 
+app.use("/api/ai-trip", aiTripRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Determine listening port
 const PORT = process.env.PORT || 5000;

@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
 import { useNavigate } from "react-router-dom";
+import API from "../../api/api";
 
 // --- Internal Section Components ---
 
@@ -833,6 +834,39 @@ function FAQ() {
 }
 
 function ContactUs() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState({ type: "", message: "" });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setStatus({ type: "", message: "" });
+
+    try {
+      await API.post("/contact", formData);
+      setStatus({ type: "success", message: "Your message was sent successfully." });
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.response?.data?.message || "Failed to send your message.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section id="contact" className="py-24 px-6">
       <div className="max-w-7xl mx-auto">
@@ -901,15 +935,19 @@ function ContactUs() {
                 Send a Message
               </h3>
 
-              <form className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-white/50 text-xs font-semibold uppercase tracking-wider mb-2">
                       Your Name
                     </label>
                     <input
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
                       type="text"
                       placeholder="Alex Rivera"
+                      required
                       className="w-full px-4 py-3 bg-white/[0.06] border border-white/[0.1] rounded-xl text-white placeholder-white/25 focus:outline-none focus:border-cyan-400/60 focus:bg-white/[0.08] transition-all text-sm"
                     />
                   </div>
@@ -918,8 +956,12 @@ function ContactUs() {
                       Email Address
                     </label>
                     <input
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
                       type="email"
                       placeholder="alex@example.com"
+                      required
                       className="w-full px-4 py-3 bg-white/[0.06] border border-white/[0.1] rounded-xl text-white placeholder-white/25 focus:outline-none focus:border-cyan-400/60 focus:bg-white/[0.08] transition-all text-sm"
                     />
                   </div>
@@ -930,8 +972,12 @@ function ContactUs() {
                     Subject
                   </label>
                   <input
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
                     type="text"
                     placeholder="How can we help?"
+                    required
                     className="w-full px-4 py-3 bg-white/[0.06] border border-white/[0.1] rounded-xl text-white placeholder-white/25 focus:outline-none focus:border-cyan-400/60 focus:bg-white/[0.08] transition-all text-sm"
                   />
                 </div>
@@ -941,20 +987,34 @@ function ContactUs() {
                     Message
                   </label>
                   <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
                     rows={5}
                     placeholder="Tell us more about your inquiry..."
+                    required
                     className="w-full px-4 py-3 bg-white/[0.06] border border-white/[0.1] rounded-xl text-white placeholder-white/25 focus:outline-none focus:border-cyan-400/60 focus:bg-white/[0.08] transition-all text-sm resize-none"
                   />
                 </div>
+
+                {status.message ? (
+                  <div className={`rounded-xl border px-4 py-3 text-sm ${status.type === "success"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                    : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                    }`}>
+                    {status.message}
+                  </div>
+                ) : null}
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-[#060E1E] rounded-xl font-bold shadow-xl shadow-blue-400/20 hover:shadow-blue-400/35 transition-shadow"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-[#060E1E] rounded-xl font-bold shadow-xl shadow-blue-400/20 hover:shadow-blue-400/35 transition-shadow disabled:opacity-70"
                 >
                   <Send className="w-4 h-4" />
-                  Send Message
+                  {loading ? "Sending..." : "Send Message"}
                 </motion.button>
               </form>
             </div>

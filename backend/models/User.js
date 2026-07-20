@@ -12,15 +12,33 @@ const userSchema = new mongoose.Schema(
     // Unique email address for authentication
     email: {
       type: String,
-      unique: true
+      unique: true,
+      lowercase: true,
+      trim: true,
     },
 
     // Hashed password for security
-    password: String
+    password: {
+      type: String,
+      default: "",
+    },
+
+    // Authentication method used for this account
+    authMethod: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+
+    // Google account identifier for OAuth users
+    googleId: String,
+
+    // Optional profile picture URL from Google
+    avatar: String,
   },
-  { 
+  {
     // Automatically manage createdAt and updatedAt timestamps
-    timestamps: true 
+    timestamps: true,
   }
 );
 

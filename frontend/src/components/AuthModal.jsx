@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import API from "../../api/api";
 
 export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "login" }) {
@@ -14,6 +15,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "login
   const [success, setSuccess] = useState("");
 
   const completeAuth = (token, user, message) => {
+    setLoading(false);
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
     window.dispatchEvent(new CustomEvent("auth:changed", { detail: { user } }));
@@ -23,6 +25,59 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "login
       onLoginSuccess?.(user);
       onClose();
     }, 700);
+  };
+
+  const handleCredentialResponse = async (response) => {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      const res = await API.post("/auth/google", { credential: response.credential });
+      const { token, user } = res.data;
+      completeAuth(token, user, activeTab === "signup"
+        ? "Signed up with Google successfully!"
+        : "Signed in with Google successfully!");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || "Google sign-in failed. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      setError("Google sign-in is not configured yet. Add VITE_GOOGLE_CLIENT_ID to your frontend environment.");
+      return;
+    }
+
+    if (!window.google?.accounts?.id) {
+      const existingScript = document.getElementById("google-gsi-script");
+      if (!existingScript) {
+        const script = document.createElement("script");
+        script.id = "google-gsi-script";
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleCredentialResponse,
+          });
+          window.google.accounts.id.prompt();
+        };
+        document.body.appendChild(script);
+      }
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleCredentialResponse,
+    });
+    window.google.accounts.id.prompt();
   };
 
   // Sync activeTab with initialTab when modal opens
@@ -206,6 +261,27 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, initialTab = "login
                 </motion.div>
               )}
             </AnimatePresence>
+
+            <motion.button
+              whileHover={{ scale: 1.01, y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <FcGoogle className="w-5 h-5" />
+              {activeTab === "login" ? "Continue with Google" : "Sign up with Google"}
+            </motion.button>
+
+            <div className="relative mb-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200 dark:border-slate-700" />
+              </div>
+              <div className="relative flex justify-center text-[11px] uppercase tracking-[0.3em] text-slate-400">
+                <span className="bg-white/95 dark:bg-slate-900/95 px-3">or</span>
+              </div>
+            </div>
 
             {/* Auth Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
