@@ -49,6 +49,37 @@ const routeSchema = new mongoose.Schema({
 });
 
 /**
+ * Sub-schema for hotel or plan bookings made by the user.
+ */
+const bookingSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["hotel", "plan"],
+      default: "hotel",
+    },
+    title: String,
+    provider: String,
+    location: String,
+    checkIn: Date,
+    checkOut: Date,
+    guests: Number,
+    price: Number,
+    currency: {
+      type: String,
+      default: "USD",
+    },
+    notes: String,
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "cancelled"],
+      default: "pending",
+    },
+  },
+  { timestamps: true }
+);
+
+/**
  * Main Mongoose schema for the Trip model.
  * Handles the complete structure of a user's trip, including manual and AI-generated data.
  */
@@ -135,6 +166,9 @@ const tripSchema = new mongoose.Schema(
         lng: Number,
       }],
     }],
+
+    bookings: [bookingSchema],
+    // Hotel and plan reservations created by the user
 
     recommendations: [String], 
     // AI-generated recommendations

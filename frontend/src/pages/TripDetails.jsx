@@ -11,6 +11,12 @@ import {
   Utensils,
   Home,
   AlertCircle,
+  Plus,
+  Search,
+  Loader2,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
 } from "lucide-react";
 import API from "../../api/api";
 
@@ -20,6 +26,27 @@ export function TripDetails() {
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [bookingForm, setBookingForm] = useState({
+    type: "hotel",
+    title: "",
+    provider: "",
+    location: "",
+    checkIn: "",
+    checkOut: "",
+    guests: 1,
+    price: 0,
+    notes: "",
+  });
+  const [bookingSaving, setBookingSaving] = useState(false);
+  const [bookingMessage, setBookingMessage] = useState("");
+
+  const [destinations, setDestinations] = useState([]);
+  const [searchCountry, setSearchCountry] = useState("");
+  const [destinationSearch, setDestinationSearch] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [destinationsSaving, setDestinationsSaving] = useState(false);
+  const [destinationsMessage, setDestinationsMessage] = useState("");
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -36,6 +63,321 @@ export function TripDetails() {
 
     fetchTrip();
   }, [id]);
+
+  useEffect(() => {
+    if (!trip) return;
+
+    const defaultHotel = trip.hotels?.[0]?.name || trip.hotels?.[0]?.title || "";
+    const defaultLocation = trip.destinations?.[0]?.city || trip.startLocation || "";
+    const defaultPlanTitle = trip.dailyPlan?.[0]?.title || trip.title || "";
+
+    setBookingForm((prev) => ({
+      ...prev,
+      title: prev.title || (defaultHotel || defaultPlanTitle || ""),
+      provider: prev.provider || defaultHotel || "",
+      location: prev.location || defaultLocation,
+      price: prev.price || trip.budgetBreakdown?.hotel || 0,
+    }));
+  }, [trip]);
+
+  useEffect(() => {
+    if (!trip) return;
+
+    setDestinations(trip.destinations || []);
+    setSearchCountry(
+      trip.destinations?.[0]?.country || trip.startLocation || "Sri Lanka"
+    );
+  }, [trip]);
+
+  useEffect(() => {
+    if (!destinationSearch.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchDestinationSuggestions(destinationSearch);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [destinationSearch, searchCountry]);
+
+  const fetchDestinationSuggestions = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setSearchLoading(true);
+      const country = searchCountry || "Sri Lanka";
+      const res = await API.get("/destinations/live", {
+        params: {
+          country,
+          category: "all",
+          search: query,
+        },
+      });
+
+      setSearchResults(res.data.slice(0, 8));
+    } catch (err) {
+      console.error("Destination search failed:", err);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleAddDestination = (destination) => {
+    if (!destination || !destination.name) return;
+
+    setDestinations((prev) => {
+      const existing = prev.find(
+        (item) => item.name === destination.name && item.city === destination.city
+      );
+      if (existing) return prev;
+      return [...prev, destination];
+    });
+
+    setDestinationSearch("");
+    setSearchResults([]);
+  };
+
+  const handleRemoveDestination = (index) => {
+    setDestinations((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const moveDestination = (index, direction) => {
+    setDestinations((prev) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const updated = [...prev];
+      const item = updated[index];
+      updated[index] = updated[nextIndex];
+      updated[nextIndex] = item;
+      return updated;
+    });
+  };
+
+  const handleSaveDestinations = async () => {
+    if (!trip) return;
+
+    try {
+      setDestinationsSaving(true);
+      setDestinationsMessage("");
+
+      const response = await API.patch(`/trips/${trip._id}/destinations`, {
+        destinations,
+      });
+
+      setTrip(response.data);
+      setDestinations(response.data.destinations || []);
+      setDestinationsMessage("Trip destinations saved successfully.");
+    } catch (err) {
+      console.error("Failed to save destinations:", err);
+      setDestinationsMessage(
+        err.response?.data?.message || "Failed to save destinations"
+      );
+    } finally {
+      setDestinationsSaving(false);
+    }
+  };
+
+  const handleDestinationSearchChange = (value) => {
+    setDestinationSearch(value);
+    setDestinationsMessage("");
+  };
+
+  const renderDestinationSearch = () => (
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Edit Destinations</h2>
+          <p className="text-slate-500 text-sm">
+            Search real travel destinations and update the order of your trip.
+          </p>
+        </div>
+        <div className="text-sm text-slate-500">
+          Search country: <strong>{searchCountry || "Sri Lanka"}</strong>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr] mb-6">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">
+            Search destination
+          </label>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={destinationSearch}
+              onChange={(event) =>
+                handleDestinationSearchChange(event.target.value)
+              }
+              placeholder="Type a destination name..."
+              className="w-full pl-11 pr-4 py-4 bg-white text-slate-900 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-end">
+          <button
+            type="button"
+            onClick={() => fetchDestinationSuggestions(destinationSearch)}
+            disabled={!destinationSearch.trim() || searchLoading}
+            className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl transition disabled:opacity-50"
+          >
+            {searchLoading ? "Searching..." : "Search"
+            }
+          </button>
+        </div>
+      </div>
+
+      {searchResults.length > 0 && (
+        <div className="space-y-3 mb-4">
+          {searchResults.map((result) => (
+            <button
+              key={result._id || result.xid || `${result.name}-${result.city}`}
+              type="button"
+              onClick={() => handleAddDestination(result)}
+              className="w-full text-left rounded-2xl border border-slate-200 p-4 hover:border-blue-300 hover:bg-slate-50 transition"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-slate-900">{result.name}</p>
+                  <p className="text-sm text-slate-500">
+                    {result.city && `${result.city}, `}
+                    {result.country}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-blue-600">
+                  Add
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {destinationsMessage && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 mb-4">
+          {destinationsMessage}
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-4">
+        <div className="flex flex-wrap gap-3 mb-4">
+          {destinations.length === 0 ? (
+            <p className="text-slate-500">No destinations added yet.</p>
+          ) : (
+            destinations.map((destination, index) => (
+              <div
+                key={`${destination.name}-${index}`}
+                className="w-full bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"
+              >
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-900">
+                      {destination.name || destination.city}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {destination.city && `${destination.city}, `}
+                      {destination.country}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => moveDestination(index, -1)}
+                      disabled={index === 0}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveDestination(index, 1)}
+                      disabled={index === destinations.length - 1}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDestination(index)}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSaveDestinations}
+          disabled={destinationsSaving}
+          className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 py-4 text-white font-semibold shadow-xl hover:shadow-2xl transition disabled:opacity-50"
+        >
+          {destinationsSaving ? "Saving..." : "Save destinations"}
+        </button>
+      </div>
+    </div>
+  );
+
+  const handleBookingSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!bookingForm.title.trim()) {
+      setBookingMessage("Please enter a booking title.");
+      return;
+    }
+
+    try {
+      setBookingSaving(true);
+      setBookingMessage("");
+
+      const response = await API.post(`/trips/${trip._id}/bookings`, {
+        ...bookingForm,
+        guests: Number(bookingForm.guests || 1),
+        price: Number(bookingForm.price || 0),
+        status: "pending",
+      });
+
+      setTrip((prev) =>
+        prev
+          ? {
+              ...prev,
+              bookings: [...(prev.bookings || []), response.data.booking],
+            }
+          : prev
+      );
+
+      setBookingMessage(
+        `${bookingForm.type === "hotel" ? "Hotel" : "Plan"} booking saved successfully.`
+      );
+      setBookingForm((prev) => ({
+        ...prev,
+        title: "",
+        provider: "",
+        location: trip.destinations?.[0]?.city || trip.startLocation || "",
+        checkIn: "",
+        checkOut: "",
+        guests: 1,
+        price: trip.budgetBreakdown?.hotel || 0,
+        notes: "",
+      }));
+    } catch (err) {
+      setBookingMessage(err.response?.data?.message || "Failed to save booking");
+    } finally {
+      setBookingSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -189,6 +531,8 @@ export function TripDetails() {
           </section>
         )}
 
+        {renderDestinationSearch()}
+
         {/* Daily Plan */}
         {dailyPlan.length > 0 ? (
           <section className="bg-white rounded-2xl shadow-lg p-8 mb-8">
@@ -290,6 +634,213 @@ export function TripDetails() {
             <p className="text-slate-600">No daily itinerary available for this trip.</p>
           </section>
         )}
+
+        {/* Booking Section */}
+        <section className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">
+                Hotel & Plan Bookings
+              </h2>
+              <p className="text-slate-600 text-sm mt-1">
+                Reserve hotels or booking packages directly from your saved trip.
+              </p>
+            </div>
+            <div className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+              {(trip.bookings || []).length} booked
+            </div>
+          </div>
+
+          {bookingMessage && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {bookingMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleBookingSubmit} className="grid gap-4 md:grid-cols-2 mb-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Booking Type
+              </label>
+              <select
+                value={bookingForm.type}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, type: event.target.value }))
+                }
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              >
+                <option value="hotel">Hotel</option>
+                <option value="plan">Plan</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Title
+              </label>
+              <input
+                value={bookingForm.title}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, title: event.target.value }))
+                }
+                placeholder="Grand Hotel or Tokyo Culture Pass"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Provider / Place
+              </label>
+              <input
+                value={bookingForm.provider}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, provider: event.target.value }))
+                }
+                placeholder="Hotel name or tour operator"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Location
+              </label>
+              <input
+                value={bookingForm.location}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, location: event.target.value }))
+                }
+                placeholder="City / area"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Check-in
+              </label>
+              <input
+                type="date"
+                value={bookingForm.checkIn}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, checkIn: event.target.value }))
+                }
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Check-out
+              </label>
+              <input
+                type="date"
+                value={bookingForm.checkOut}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, checkOut: event.target.value }))
+                }
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Guests
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={bookingForm.guests}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, guests: event.target.value }))
+                }
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Price
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={bookingForm.price}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, price: event.target.value }))
+                }
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Notes
+              </label>
+              <textarea
+                rows={3}
+                value={bookingForm.notes}
+                onChange={(event) =>
+                  setBookingForm((prev) => ({ ...prev, notes: event.target.value }))
+                }
+                placeholder="Any special request or booking note"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <button
+                type="submit"
+                disabled={bookingSaving}
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Plus className="w-4 h-4" />
+                {bookingSaving ? "Saving..." : "Save Booking"}
+              </button>
+            </div>
+          </form>
+
+          {(trip.bookings || []).length > 0 ? (
+            <div className="space-y-3">
+              {(trip.bookings || []).map((booking, index) => (
+                <div
+                  key={booking._id || `${booking.title}-${index}`}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">{booking.title}</p>
+                      <p className="text-sm text-slate-600">
+                        {booking.provider || booking.location || "Booking"}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                      {booking.status || "pending"}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-3 text-sm text-slate-600">
+                    <div>
+                      <p className="font-semibold text-slate-700">Type</p>
+                      <p className="capitalize">{booking.type || "hotel"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700">Location</p>
+                      <p>{booking.location || "TBD"}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700">Price</p>
+                      <p>${booking.price || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-500 text-sm">No bookings yet. Add your first hotel or plan reservation above.</p>
+          )}
+        </section>
 
         {/* Recommendations */}
         {trip.recommendations && trip.recommendations.length > 0 && (

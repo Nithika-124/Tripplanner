@@ -117,6 +117,72 @@ router.post("/", protect, async (req, res) => {
 });
 
 /**
+ * @route   POST /api/trips/:id/bookings
+ * @desc    Add a hotel or plan booking to a trip
+ * @access  Private
+ */
+router.post("/:id/bookings", protect, async (req, res) => {
+  try {
+    const {
+      type = "hotel",
+      title,
+      provider,
+      location,
+      checkIn,
+      checkOut,
+      guests = 1,
+      price = 0,
+      currency = "USD",
+      notes = "",
+      status = "pending",
+    } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ message: "Booking title is required" });
+    }
+
+    const trip = await Trip.findOne({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    const booking = {
+      type,
+      title,
+      provider,
+      location,
+      checkIn: checkIn ? new Date(checkIn) : undefined,
+      checkOut: checkOut ? new Date(checkOut) : undefined,
+      guests: Number(guests),
+      price: Number(price),
+      currency,
+      notes,
+      status,
+    };
+
+    trip.bookings.push(booking);
+    await trip.save();
+
+    const createdBooking = trip.bookings[trip.bookings.length - 1];
+
+    res.status(201).json({
+      message: "Booking added successfully",
+      booking: createdBooking,
+    });
+  } catch (error) {
+    console.error("Add Booking Error:", error);
+    res.status(500).json({
+      message: "Booking failed",
+      error: error.message,
+    });
+  }
+});
+
+/**
  * @route   GET /api/trips/my-trips
  * @desc    Get all trips for the authenticated user
  * @access  Private
@@ -196,6 +262,62 @@ router.patch("/:id/tasks/:taskId", protect, async (req, res) => {
     console.error("Update Task Error:", error);
     res.status(500).json({
       message: "Failed to update task",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * @route   PATCH /api/trips/:id/destinations
+ * @desc    Update trip destinations, reorder or remove destinations
+ * @access  Private
+ */
+router.patch("/:id/destinations", protect, async (req, res) => {
+  try {
+    const { destinations } = req.body;
+
+    if (!Array.isArray(destinations)) {
+      return res.status(400).json({ message: "Destinations must be an array" });
+    }
+
+    const trip = await Trip.findOne({
+      _id: req.params.id,
+      userId: req.user.id,
+    });
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    trip.destinations = destinations;
+
+    if (Array.isArray(trip.dailyPlan) && trip.dailyPlan.length > 0) {
+      trip.dailyPlan = destinations.map((destination, index) => {
+        const existingDay = trip.dailyPlan[index] || {};
+
+        return {
+          day: index + 1,
+          title:
+            existingDay.title || destination.name || destination.city || `Day ${index + 1}`,
+          route:
+            destination.city && destination.country
+              ? `${destination.city}, ${destination.country}`
+              : destination.name || "",
+          city: destination.city || destination.name || "",
+          estimatedCost: existingDay.estimatedCost || 0,
+          hotelSuggestion: existingDay.hotelSuggestion || {},
+          activities: Array.isArray(existingDay.activities) ? existingDay.activities : [],
+        };
+      });
+    }
+
+    await trip.save();
+
+    res.json(trip);
+  } catch (error) {
+    console.error("Update Destinations Error:", error);
+    res.status(500).json({
+      message: "Failed to update destinations",
       error: error.message,
     });
   }
